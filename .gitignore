@@ -9,7 +9,6 @@ yarn-debug.log*
 yarn-error.log*
 
 # WIP - components not ready yet
-src/components/Hero.tsx
 src/components/About.tsx
 src/components/SkillsMarquee.tsx
 src/components/Experience.tsx
@@ -19,6 +18,6 @@ src/components/ProjectCard.tsx
 src/components/Contact.tsx
 src/components/Footer.tsx
 src/components/FloatingDock.tsx
-src/components/SpotlightCursor.tsx
+src/components/HeroScroll.tsx
 src/app/page.tsx
 src/lib/github.ts
