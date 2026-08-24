@@ -19,5 +19,8 @@ src/components/Contact.tsx
 src/components/Footer.tsx
 src/components/FloatingDock.tsx
 src/components/HeroScroll.tsx
+src/components/ui/button.tsx
+src/components/ui/card.tsx
+src/components/ui/profile-card.tsx
 src/app/page.tsx
 src/lib/github.ts
