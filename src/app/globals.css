@@ -3,18 +3,47 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /*
+     * Motion curves. Exits and entrances get a strong ease-out; on-screen
+     * morphs get a strong ease-in-out. ease-in is never used on UI: it holds
+     * still for the first frames, which is exactly when the eye is watching.
+     */
+    --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+    /*
+     * Materials. No surface in this site draws a uniform 1px border. Light
+     * arrives from above, so the top edge is lit and the ring around the rest
+     * of the surface is roughly half as bright.
+     */
+    --edge-lit: rgba(255, 255, 255, 0.1);
+    --edge-ring: rgba(255, 255, 255, 0.052);
+    --edge-ring-inner: rgba(255, 255, 255, 0.028);
+  }
+
   html {
+    color-scheme: dark;
     scroll-behavior: smooth;
     scroll-padding-top: 2rem;
   }
 
   body {
-    @apply bg-neutral-950 text-neutral-200 antialiased;
+    @apply bg-abyss text-ink antialiased;
     overflow-x: hidden;
+    /* Raycast-signature Inter rendering: ss03 alternate g, ligatures, kerning */
+    font-feature-settings: 'calt', 'kern', 'liga', 'ss03';
+    /* Micro dot texture: barely-there tooth so the void never reads flat */
+    background-image: radial-gradient(
+      rgba(255, 255, 255, 0.024) 1px,
+      transparent 1px
+    );
+    background-size: 26px 26px;
   }
 
   ::selection {
-    @apply bg-emerald-500/20 text-emerald-50;
+    @apply bg-glow/25 text-ink;
   }
 
   ::-webkit-scrollbar {
@@ -24,22 +53,634 @@
     @apply bg-transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-neutral-800 rounded-full;
+    @apply bg-white/10 rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-neutral-700;
+    @apply bg-white/20;
   }
 }
 
-/* Grain texture overlay for depth */
+@layer components {
+  /*
+   * Double-bezel shell: a glass plate resting in a machined tray.
+   * Edges are shadows, never borders. Reading top to bottom:
+   * lit top edge -> dimmer ring -> contact shadow -> mass -> ambient drop.
+   */
+  .bezel {
+    @apply rounded-[2rem] p-1.5;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.052) 0%,
+      rgba(255, 255, 255, 0.024) 38%,
+      rgba(255, 255, 255, 0.014) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 0 var(--edge-lit),
+      inset 0 0 0 1px var(--edge-ring),
+      0 1px 2px -1px rgba(0, 0, 0, 0.55),
+      0 14px 30px -16px rgba(0, 0, 0, 0.7),
+      0 44px 78px -44px rgba(3, 3, 8, 0.9);
+  }
+
+  .bezel-core {
+    @apply rounded-[calc(2rem-0.375rem)];
+    /*
+     * Translucent, not opaque: the ambient field behind the page reads
+     * through the surface, which is what keeps bento boxes sitting in the
+     * scene instead of on top of it. No backdrop-filter here on purpose,
+     * this surface scrolls.
+     */
+    background: linear-gradient(
+      180deg,
+      rgba(20, 20, 26, 0.78) 0%,
+      rgba(10, 10, 14, 0.86) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.055),
+      inset 0 0 0 1px var(--edge-ring-inner),
+      inset 0 -44px 64px -52px rgba(0, 0, 0, 0.9);
+  }
+
+  /*
+   * Floating chrome material: dock, Spotify pill, progress strip, modals.
+   * backdrop-filter belongs only here, on fixed and sticky layers, because
+   * content passes underneath them.
+   */
+  .material {
+    background: rgba(11, 11, 15, 0.62);
+    backdrop-filter: blur(24px) saturate(165%);
+    -webkit-backdrop-filter: blur(24px) saturate(165%);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.09),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+      0 10px 34px -14px rgba(0, 0, 0, 0.85);
+  }
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Ambient field
+ * ---------------------------------------------------------------------------
+ * Three drifting layers on periods that share no common multiple, so the
+ * composition never visibly repeats. Every radial uses a four-stop alpha ramp
+ * rather than colour-to-transparent: a two-stop gradient falls off linearly
+ * and shows a hard ring edge on wide-gamut displays. The ramp approximates a
+ * gaussian, which is what makes the glow read as light rather than as a shape.
+ * Transform-only animation, extremely slow (0.006-0.010 Hz).
+ */
+.ambient {
+  position: fixed;
+  inset: -22%;
+  z-index: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.ambient-a {
+  background:
+    radial-gradient(
+      50rem 42rem at 22% 10%,
+      rgba(130, 143, 255, 0.1) 0%,
+      rgba(130, 143, 255, 0.062) 24%,
+      rgba(130, 143, 255, 0.026) 46%,
+      rgba(130, 143, 255, 0.007) 68%,
+      transparent 84%
+    ),
+    radial-gradient(
+      44rem 40rem at 86% 76%,
+      rgba(168, 200, 232, 0.05) 0%,
+      rgba(168, 200, 232, 0.03) 28%,
+      rgba(168, 200, 232, 0.011) 52%,
+      transparent 78%
+    );
+  animation: drift-a 97s ease-in-out infinite alternate;
+}
+
+.ambient-b {
+  background:
+    radial-gradient(
+      42rem 36rem at 78% 18%,
+      rgba(167, 229, 211, 0.038) 0%,
+      rgba(167, 229, 211, 0.022) 26%,
+      rgba(167, 229, 211, 0.008) 50%,
+      transparent 76%
+    ),
+    radial-gradient(
+      56rem 46rem at 26% 92%,
+      rgba(200, 184, 224, 0.044) 0%,
+      rgba(200, 184, 224, 0.027) 26%,
+      rgba(200, 184, 224, 0.01) 50%,
+      transparent 78%
+    );
+  animation: drift-b 131s ease-in-out infinite alternate;
+}
+
+/* Deep wash: no hue of its own, it only gives the mid-field somewhere to fall */
+.ambient-c {
+  background: radial-gradient(
+    64rem 52rem at 58% 46%,
+    rgba(94, 106, 210, 0.045) 0%,
+    rgba(94, 106, 210, 0.026) 30%,
+    rgba(94, 106, 210, 0.009) 56%,
+    transparent 80%
+  );
+  animation: drift-c 173s ease-in-out infinite alternate;
+}
+
+@keyframes drift-a {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(2.6%, 2%, 0) scale(1.04);
+  }
+}
+
+@keyframes drift-b {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1.03);
+  }
+  100% {
+    transform: translate3d(-2.8%, -1.6%, 0) scale(1);
+  }
+}
+
+@keyframes drift-c {
+  0% {
+    transform: translate3d(-1.4%, 1.2%, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(1.6%, -1.4%, 0) scale(1.06);
+  }
+}
+
+/* Dim light horizon at the very top of the page: the room's single lamp */
+.ambient-horizon {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    68rem 24rem at 50% -9rem,
+    rgba(130, 143, 255, 0.095) 0%,
+    rgba(130, 143, 255, 0.055) 26%,
+    rgba(130, 143, 255, 0.02) 50%,
+    transparent 74%
+  );
+}
+
+/*
+ * Vignette: pulls the corners down so the ambient field reads as a lit centre
+ * rather than an evenly washed rectangle. Sits above the orbs, below content.
+ */
+.ambient-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    132% 96% at 50% 34%,
+    transparent 42%,
+    rgba(0, 0, 0, 0.24) 72%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Preloader veil
+ * ---------------------------------------------------------------------------
+ * Deliberately CSS, not Framer Motion. This animation plays while the page is
+ * still hydrating, which is the single busiest moment on the main thread;
+ * rAF-driven motion drops frames there and CSS does not.
+ *
+ * The veil does not slide out of the way. It recedes: scales back, blurs and
+ * dissolves, so the hero is revealed through a rack focus rather than from
+ * behind a curtain. Transform leads (560ms), blur follows, opacity trails
+ * (660ms), so depth is perceived before the layer is gone.
+ */
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(72rem 42rem at 50% 46%, #0a0a10 0%, #050506 64%);
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0px);
+  will-change: opacity, transform, filter;
+  transition:
+    transform 560ms var(--ease-out-strong),
+    filter 520ms var(--ease-out-strong),
+    opacity 660ms var(--ease-out-strong);
+}
+
+.veil[data-leaving='true'] {
+  opacity: 0;
+  transform: scale(0.955);
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+/*
+ * The wordmark leaves ahead of the veil and keeps travelling in the direction
+ * it arrived from (upward), so the exit completes the entrance instead of
+ * contradicting it.
+ */
+.veil-mark {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  filter: blur(0px);
+  transition:
+    transform 300ms var(--ease-out-strong),
+    filter 240ms var(--ease-out-strong),
+    opacity 240ms var(--ease-out-strong);
+}
+
+.veil[data-leaving='true'] .veil-mark {
+  opacity: 0;
+  transform: translate3d(0, -10px, 0);
+  filter: blur(7px);
+}
+
+.veil-letter {
+  display: inline-block;
+  animation: veil-letter-in 600ms var(--ease-out-strong) both;
+  animation-delay: calc(var(--lead, 180ms) + var(--i) * var(--stagger, 44ms));
+}
+
+@keyframes veil-letter-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.62em, 0);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0px);
+  }
+}
+
+/*
+ * The plane enters along its flight path and, on exit, keeps flying.
+ * Two elements on purpose: a filled animation outranks a transition on the
+ * same property, so the arrival keyframe and the departure transition cannot
+ * share a node.
+ */
+.veil-plane {
+  display: inline-flex;
+  transition:
+    transform 340ms var(--ease-out-strong),
+    opacity 240ms var(--ease-out-strong);
+}
+
+.veil[data-leaving='true'] .veil-plane {
+  opacity: 0;
+  transform: translate3d(30px, -6px, 0);
+}
+
+.veil-plane-arrival {
+  display: inline-flex;
+  animation: veil-plane-in 720ms var(--ease-out-strong) both;
+  animation-delay: 60ms;
+}
+
+@keyframes veil-plane-in {
+  from {
+    opacity: 0;
+    transform: translate3d(-44px, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Sakura field (/tokyo only)
+ * ---------------------------------------------------------------------------
+ * Two soft bloom layers plus falling petals. Rendered by a Server Component,
+ * animated entirely in CSS so none of it touches the main thread.
+ *
+ * Drift periods are 113s and 149s: both coprime with the 97 / 131 / 173 of the
+ * global ambient layers, so the two systems never resynchronise.
+ */
+.sakura {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* Isolates the petals' invalidation from the rest of the page, and clips */
+  contain: layout paint;
+}
+
+.sakura-petals {
+  position: absolute;
+  inset: 0;
+}
+
+.sakura-bloom {
+  position: absolute;
+  /* Oversized so the drift never walks an edge into view */
+  inset: -18%;
+  will-change: transform;
+}
+
+/* Canopy overhead: the torii red lifted toward white, so it reads as light
+   coming through petals rather than as the red itself. */
+.sakura-bloom-warm {
+  background:
+    radial-gradient(
+      46rem 34rem at 16% 4%,
+      rgba(255, 148, 152, 0.038) 0%,
+      rgba(255, 148, 152, 0.023) 26%,
+      rgba(255, 148, 152, 0.009) 50%,
+      rgba(255, 148, 152, 0.002) 70%,
+      transparent 84%
+    ),
+    radial-gradient(
+      38rem 30rem at 88% 15%,
+      rgba(255, 176, 168, 0.026) 0%,
+      rgba(255, 176, 168, 0.015) 28%,
+      rgba(255, 176, 168, 0.006) 52%,
+      transparent 78%
+    );
+  /* 149s and 211s. Together with the root field's 97 / 131 / 173 these are all
+     prime, so no two layers share a common multiple and the composition never
+     repeats. */
+  animation: sakura-drift-warm 149s ease-in-out infinite alternate;
+}
+
+/* The cool end of the /tokyo gradient, sitting low: dusk under the canopy */
+.sakura-bloom-cool {
+  background: radial-gradient(
+    52rem 40rem at 68% 86%,
+    rgba(87, 193, 255, 0.03) 0%,
+    rgba(87, 193, 255, 0.018) 28%,
+    rgba(87, 193, 255, 0.007) 52%,
+    rgba(87, 193, 255, 0.002) 72%,
+    transparent 86%
+  );
+  animation: sakura-drift-cool 211s ease-in-out infinite alternate;
+}
+
+@keyframes sakura-drift-warm {
+  0% {
+    transform: translate3d(-1.2%, 0.8%, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(2.2%, -1.4%, 0) scale(1.06);
+  }
+}
+
+@keyframes sakura-drift-cool {
+  0% {
+    transform: translate3d(1.6%, -1%, 0) scale(1.05);
+  }
+  100% {
+    transform: translate3d(-2%, 1.6%, 0) scale(1);
+  }
+}
+
+/*
+ * Two elements per petal, deliberately. `transform` is a single property, so
+ * two keyframes on one node would not compose, the later name would simply
+ * win. The outer node owns the fall in page space; the inner owns the flutter,
+ * whose translateX is applied in the parent's unrotated space and whose
+ * rotation happens about the petal's own origin.
+ *
+ * No will-change on the petals. A running transform animation already promotes
+ * an element to its own compositor layer, so it would be pure redundancy, and
+ * it forces a stacking context on sixteen nodes inside a layer whose stacking
+ * behaviour is already load-bearing.
+ *
+ * vh, never dvh: dvh changes as the mobile URL bar collapses, which would move
+ * the keyframe endpoint mid-animation and make every petal jump on a scroll
+ * direction change.
+ */
+.petal {
+  position: absolute;
+  top: 0;
+  left: var(--x);
+  animation: petal-fall var(--dur) linear var(--delay) infinite;
+}
+
+/* Linear on the fall: terminal velocity is constant, and easing here would
+   read as the petal inexplicably speeding up and slowing down. */
+@keyframes petal-fall {
+  0% {
+    transform: translate3d(0, -12vh, 0);
+    opacity: 0;
+  }
+  /* Ramped in and out so a petal never pops into or out of existence at a
+     screen edge, and so it is near-invisible while crossing the sticky strip. */
+  12% {
+    opacity: var(--o);
+  }
+  84% {
+    opacity: var(--o);
+  }
+  100% {
+    transform: translate3d(0, 112vh, 0);
+    opacity: 0;
+  }
+}
+
+.petal-shape {
+  display: block;
+  width: var(--w);
+  /*
+   * The 1.28 aspect ratio does more work than the radii: a square box reads as
+   * a dot at any border-radius. Three rounded corners and one near-sharp one
+   * give the ovate, single-pointed silhouette of a blossom petal.
+   *
+   * No filter: blur() anywhere near this element. A blur filter on an animating
+   * node is a per-frame paint; the softness lives in the gradient instead, and
+   * depth comes from the size/speed/opacity coupling in SakuraField.tsx.
+   */
+  height: calc(var(--w) * 1.28);
+  border-radius: 100% 100% 100% 6% / 100% 100% 100% 8%;
+  background: radial-gradient(
+    128% 104% at 32% 10%,
+    rgba(255, 231, 228, 0.62) 0%,
+    rgba(255, 199, 196, 0.44) 30%,
+    rgba(255, 158, 152, 0.2) 58%,
+    rgba(255, 158, 152, 0.05) 80%,
+    transparent 100%
+  );
+  animation: petal-flutter var(--flutter) ease-in-out var(--delay) infinite
+    alternate;
+}
+
+@keyframes petal-flutter {
+  from {
+    transform: translate3d(calc(var(--drift) * -1), 0, 0) rotate(var(--rot-a));
+  }
+  to {
+    transform: translate3d(var(--drift), 0, 0) rotate(var(--rot-b));
+  }
+}
+
+/* Fewer petals in a narrow column: the same count reads as a snowstorm at
+   390px, and phones are where the compositor budget is tightest. display:none
+   removes them from the compositor entirely and stops their animations. */
+@media (max-width: 640px) {
+  .sakura-petals > .petal:nth-child(n + 10) {
+    display: none;
+  }
+}
+
+/* Status dot: a solid core with a soft halo breathing out of it */
+.status-dot {
+  position: relative;
+}
+
+.status-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  background: rgba(130, 143, 255, 0.45);
+  animation: breathe 2600ms var(--ease-in-out-strong) infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+/* Audio waveform bars for the Spotify widget */
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Film grain: fixed, non-interactive, barely visible. Also dithers the
+   ambient gradients, which is what keeps them from banding on OLED. */
 .grain::after {
   content: '';
   position: fixed;
   inset: 0;
   z-index: 1000;
   pointer-events: none;
-  opacity: 0.025;
+  opacity: 0.022;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 256px 256px;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Accessibility
+ * ---------------------------------------------------------------------------
+ * Reduced motion means gentler, not absent: opacity survives, travel and
+ * blur do not.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .ambient-a,
+  .ambient-b,
+  .ambient-c,
+  .sakura-bloom,
+  .animate-marquee,
+  .status-dot::after {
+    animation: none !important;
+  }
+
+  /*
+   * The blooms stay and stop drifting: they are light, not motion, which is the
+   * "gentler, never zero" path. The petals go entirely. `animation: none` would
+   * return them to their base style, i.e. sixteen petals parked in a neat row
+   * along the top edge, which reads as a bug rather than as restraint.
+   */
+  .petal {
+    display: none;
+  }
+
+  .veil {
+    transition: opacity 240ms ease;
+  }
+  .veil[data-leaving='true'] {
+    transform: none;
+    filter: none;
+  }
+
+  .veil-mark {
+    transition: opacity 180ms ease;
+  }
+  .veil[data-leaving='true'] .veil-mark {
+    transform: none;
+    filter: none;
+  }
+
+  .veil-letter {
+    animation: veil-letter-fade 260ms ease both;
+    animation-delay: calc(var(--i) * 12ms);
+  }
+
+  .veil-plane {
+    transition: opacity 180ms ease;
+  }
+  .veil[data-leaving='true'] .veil-plane {
+    transform: none;
+  }
+  .veil-plane-arrival {
+    animation: veil-letter-fade 260ms ease both;
+  }
+
+  @keyframes veil-letter-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* Frostier, not see-through, when the user asks for less transparency */
+@media (prefers-reduced-transparency: reduce) {
+  .material {
+    background: #0b0b0f;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .bezel-core {
+    background: #101014;
+  }
+}
+
+/* Defined edges when the user asks for more contrast */
+@media (prefers-contrast: more) {
+  .bezel,
+  .material {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  }
+  .bezel-core {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  }
+  /* A moving field behind text is precisely what a high-contrast user is
+     asking not to have. */
+  .sakura {
+    display: none;
+  }
 }
