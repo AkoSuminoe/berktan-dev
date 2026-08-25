@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Clock, Plus, Copy, Zap } from "lucide-react";
+import { Clock, Send, Copy, GraduationCap } from "lucide-react";
 
 interface ComponentProps {
   name?: string;
@@ -14,28 +14,25 @@ interface ComponentProps {
   email?: string;
   avatarSrc?: string;
   statusText?: string;
-  statusColor?: string; 
-  glowText?: string; 
+  statusColor?: string;
+  glowText?: string;
   className?: string;
 }
 
 export default function ProfileCard({
-  name = "Berktan",
-  role = "Developer",
+  name = "Berktan Solmaz",
+  role = "Software Engineer",
   email = "hello@berktan.dev",
-  avatarSrc = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&q=80",
+  avatarSrc = "https://github.com/AkoSuminoe.png",
   statusText = "Available for work",
   statusColor = "bg-emerald-500",
-  glowText = "Currently High on Creativity",
+  glowText = "Open to graduate roles",
   className,
 }: ComponentProps) {
   const [copied, setCopied] = useState(false);
-
-  const [mounted, setMounted] = useState(false);
   const [timeText, setTimeText] = useState("--:--");
 
   useEffect(() => {
-    setMounted(true);
     const updateTime = () => {
       const now = new Date();
       const h = now.getHours();
@@ -44,7 +41,7 @@ export default function ProfileCard({
       const ampm = h >= 12 ? "PM" : "AM";
       setTimeText(`${hour12}:${m}${ampm}`);
     };
-    
+
     updateTime();
     const interval = setInterval(updateTime, 10000); // Check every 10s to ensure it updates when minute changes
     return () => clearInterval(interval);
@@ -65,13 +62,11 @@ export default function ProfileCard({
       transition={{ duration: 0.4, ease: "easeOut" }}
       className={cn("relative w-full max-w-xl", className)}
     >
-     
       <div className="pointer-events-none absolute inset-x-0 -bottom-10 top-[72%] rounded-[28px] bg-emerald-400/90 blur-0 shadow-[0_40px_80px_-16px_rgba(16,185,129,0.8)] z-0" />
 
-      
       <div className="absolute inset-x-0 -bottom-10 mx-auto w-full z-0">
         <div className="flex items-center justify-center gap-2 bg-transparent py-3 text-center text-sm font-medium text-black">
-          <Zap className="h-4 w-4" /> {glowText}
+          <GraduationCap className="h-4 w-4" /> {glowText}
         </div>
       </div>
 
@@ -84,11 +79,10 @@ export default function ProfileCard({
             </div>
             <div className="flex items-center gap-2 opacity-80">
               <Clock className="h-4 w-4" />
-              <span className="tabular-nums">{timeText}</span>
+              <span className="tabular-nums font-mono text-xs">{timeText}</span>
             </div>
           </div>
 
-        
           <div className="flex flex-wrap items-center gap-5">
             <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full ring-2 ring-white/10">
               <Image
@@ -107,21 +101,23 @@ export default function ProfileCard({
             </div>
           </div>
 
-       
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Button
+              asChild
               variant="secondary"
-              className="h-12 justify-start gap-3 rounded-2xl bg-white/10 text-white hover:bg-white/15"
+              className="h-12 justify-start gap-3 rounded-2xl bg-white/10 text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-white/15 active:translate-y-0 active:scale-[0.98]"
             >
-              <Plus className="h-4 w-4" /> Hire Me
+              <a href="#contact">
+                <Send className="h-4 w-4" /> Get in touch
+              </a>
             </Button>
 
             <Button
               variant="secondary"
               onClick={handleCopy}
-              className="h-12 justify-start gap-3 rounded-2xl bg-white/10 text-white hover:bg-white/15"
+              className="h-12 justify-start gap-3 rounded-2xl bg-white/10 text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-white/15 active:translate-y-0 active:scale-[0.98]"
             >
-              <Copy className="h-4 w-4" /> {copied ? "Copied" : "Copy Email"}
+              <Copy className="h-4 w-4" /> {copied ? "Copied" : "Copy email"}
             </Button>
           </div>
         </CardContent>
