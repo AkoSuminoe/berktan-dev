@@ -21,3 +21,7 @@ next-env.d.ts
 CLAUDE.md
 AI_MEMORY.md
 DAILY_ROADMAP.md
+
+# Every markdown file stays local except the repo's shopfront
+*.md
+!README.md
