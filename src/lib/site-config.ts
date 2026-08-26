@@ -4,12 +4,10 @@ export const siteConfig = {
   name: 'Berktan',
   fullName: 'Berktan Solmaz',
   title: 'Software Engineer',
-  roles: ['Full Stack Developer', 'Software Engineering Student', 'Hardware Tinkerer'],
   bio: "I'm a BEng Software Engineering student at the University of Westminster in London. I build full-stack web apps with React and Next.js, automate game servers, and tinker with ESP32/ESP8266 hardware. Alongside my studies I take on freelance work.",
   email: 'hello@berktan.dev',
   location: 'London, UK',
   githubUsername: 'AkoSuminoe',
-  cvUrl: '/cv.pdf',
   available: true,
   socialLinks: [
     { label: 'GitHub', href: 'https://github.com/AkoSuminoe', icon: Github },
