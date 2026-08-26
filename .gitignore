@@ -16,3 +16,8 @@ DESIGN-*.md
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Internal AI Planning & Memory
+CLAUDE.md
+AI_MEMORY.md
+DAILY_ROADMAP.md
