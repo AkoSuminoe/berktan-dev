@@ -7,10 +7,13 @@ import Projects from '@/components/Projects';
 import Contact from '@/components/Contact';
 import Footer from '@/components/Footer';
 import CinematicSection from '@/components/CinematicSection';
+import JsonLd from '@/components/JsonLd';
+import { buildProfilePageGraph } from '@/lib/jsonld';
 
 export default function Home() {
   return (
     <>
+      <JsonLd data={buildProfilePageGraph()} />
       <Hero />
       <CinematicSection>
         <About />
