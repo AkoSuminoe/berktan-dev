@@ -24,6 +24,15 @@ export const siteConfig = {
    * is null, the same way NowPlaying renders nothing when unconfigured.
    */
   responseTime: null as string | null,
+  /**
+   * Path to the CV inside public/. Null until the PDF is actually there:
+   * AI_MEMORY.md records that a dead /cv.pdf pointer already shipped once and
+   * was removed. The Hero CTA renders only when this is set, so re-adding the
+   * link is a one-line change once the file lands, and it can never 404 in
+   * the meantime. Berktan also needs to re-export the CV first, since the
+   * current DOCX still shows the old 2024 - 2028 period.
+   */
+  cvUrl: null as string | null,
   githubUsername: 'AkoSuminoe',
   available: true,
   socialLinks: [

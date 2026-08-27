@@ -7,6 +7,7 @@ import Providers from '@/components/Providers';
 import Preloader from '@/components/Preloader';
 import NowPlaying from '@/components/NowPlaying';
 import Analytics from '@/components/Analytics';
+import MobileContactFab from '@/components/MobileContactFab';
 import { siteConfig } from '@/lib/site-config';
 import { buildMetadata, DEFAULT_TITLE, SITE_URL } from '@/lib/seo';
 
@@ -73,6 +74,7 @@ export default function RootLayout({
           <NowPlaying />
           <main className="relative z-10">{children}</main>
           <FloatingDock />
+          <MobileContactFab />
         </Providers>
         <Analytics />
       </body>

@@ -7,7 +7,9 @@ import {
   useTransform,
   useReducedMotion,
 } from 'framer-motion';
-import { ArrowUpRight, ArrowDown } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowUpRight, FileText } from 'lucide-react';
+import { siteConfig } from '@/lib/site-config';
 
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
@@ -104,15 +106,18 @@ export default function Hero() {
             {...fadeUp(base + 0.48)}
             className="mt-10 flex flex-wrap items-center gap-4"
           >
-            <a
-              href="#projects"
+            {/* Primary points at /work, not at #projects: the case study
+                pages are the richest surface and the section below is still
+                one scroll away either way. */}
+            <Link
+              href="/work"
               className="group inline-flex items-center gap-3 rounded-full bg-ink py-2 pl-6 pr-2 text-sm font-medium text-abyss transition-transform duration-[280ms] ease-out-strong hover:scale-[1.025] active:scale-[0.975] active:duration-[120ms]"
             >
               View work
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/10 transition-transform duration-[280ms] ease-out-strong group-hover:-translate-y-px group-hover:translate-x-px group-hover:scale-105">
-                <ArrowDown className="h-4 w-4" strokeWidth={1.5} />
+                <ArrowUpRight className="h-4 w-4" strokeWidth={1.5} />
               </span>
-            </a>
+            </Link>
             <a
               href="#contact"
               className="group inline-flex items-center gap-3 rounded-full bg-white/[0.045] py-2 pl-6 pr-2 text-sm font-medium text-ink shadow-[inset_0_1px_0_0_rgba(255,255,255,0.09),inset_0_0_0_1px_rgba(255,255,255,0.05)] transition-[transform,box-shadow] duration-[280ms] ease-out-strong hover:scale-[1.025] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16),inset_0_0_0_1px_rgba(255,255,255,0.1)] active:scale-[0.975] active:duration-[120ms]"
@@ -122,6 +127,19 @@ export default function Hero() {
                 <ArrowUpRight className="h-4 w-4" strokeWidth={1.5} />
               </span>
             </a>
+            {/* Renders only once the PDF is actually in public/. A dead CV
+                link shipped here once already. */}
+            {siteConfig.cvUrl && (
+              <a
+                href={siteConfig.cvUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-2 text-sm font-medium text-ink-dim transition-colors duration-[280ms] ease-out-strong hover:text-ink"
+              >
+                <FileText className="h-4 w-4" strokeWidth={1.5} />
+                View CV
+              </a>
+            )}
           </motion.div>
         </div>
       </motion.div>

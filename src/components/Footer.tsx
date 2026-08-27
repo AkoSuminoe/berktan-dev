@@ -14,7 +14,7 @@ const NAV = [
 export default function Footer() {
   return (
     <footer className="shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
-      <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-12 sm:flex-row sm:justify-between sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 pt-12 pb-28 sm:flex-row sm:pb-12 sm:justify-between sm:px-6">
         <p className="order-3 text-sm text-ink-faint sm:order-1">
           © {new Date().getFullYear()} {siteConfig.fullName} · London
         </p>
