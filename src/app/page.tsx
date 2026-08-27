@@ -4,16 +4,18 @@ import About from '@/components/About';
 import SkillsMarquee from '@/components/SkillsMarquee';
 import Experience from '@/components/Experience';
 import Projects from '@/components/Projects';
+import Faq from '@/components/Faq';
 import Contact from '@/components/Contact';
 import Footer from '@/components/Footer';
 import CinematicSection from '@/components/CinematicSection';
 import JsonLd from '@/components/JsonLd';
-import { buildProfilePageGraph } from '@/lib/jsonld';
+import { buildProfilePageGraph, buildFaqGraph } from '@/lib/jsonld';
 
 export default function Home() {
   return (
     <>
       <JsonLd data={buildProfilePageGraph()} />
+      <JsonLd data={buildFaqGraph()} />
       <Hero />
       <CinematicSection>
         <About />
@@ -28,6 +30,10 @@ export default function Home() {
         <Suspense fallback={<ProjectsSkeleton />}>
           <Projects />
         </Suspense>
+      </CinematicSection>
+      {/* Objections answered immediately before the ask, not after it. */}
+      <CinematicSection>
+        <Faq />
       </CinematicSection>
       <CinematicSection>
         <Contact />

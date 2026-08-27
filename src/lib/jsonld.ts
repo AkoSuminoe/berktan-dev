@@ -1,5 +1,6 @@
 import { siteConfig, skills, isProfileLink } from '@/lib/site-config';
 import type { CaseStudy } from '@/lib/case-studies';
+import { faq } from '@/lib/faq';
 import { SITE_URL, DEFAULT_TITLE, DEFAULT_DESCRIPTION } from '@/lib/seo';
 
 type JsonPrimitive = string | number | boolean | null;
@@ -165,5 +166,30 @@ export function buildCaseStudyGraph(study: CaseStudy): JsonLdGraph {
       '@id': `${SITE_URL}/#person`,
       name: siteConfig.fullName,
     },
+  };
+}
+
+/*
+ * FAQPage. A genuine win rather than schema for its own sake: recruiter
+ * questions are exactly the long-tail phrasing people type into a search box,
+ * and this is the markup that lets an answer surface directly.
+ *
+ * The source is the same array the accordion renders, so a question can never
+ * be marked up with an answer the page does not show, which is the specific
+ * thing the structured data guidelines prohibit.
+ */
+export function buildFaqGraph(): JsonLdGraph {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    '@id': `${SITE_URL}/#faq`,
+    mainEntity: faq.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
   };
 }
