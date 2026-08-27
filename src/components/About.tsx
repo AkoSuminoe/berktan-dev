@@ -28,9 +28,10 @@ export default function About() {
           transition={{ duration: 0.9, delay: 0.15, ease }}
           className="mt-10 max-w-2xl text-base sm:text-lg leading-relaxed text-ink-dim"
         >
-          Based in London, finishing a Software Engineering degree at the
-          University of Westminster while shipping freelance work, game-server
-          automation and ESP32 hardware projects.
+          Based in London, finishing a BEng in Software Engineering at the
+          University of Westminster and graduating in 2027. Alongside it I ship
+          freelance work and game-server automation, with ESP32 hardware
+          projects currently in progress.
         </motion.p>
       </div>
     </section>

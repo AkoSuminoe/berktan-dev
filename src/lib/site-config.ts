@@ -3,10 +3,27 @@ import { Github, Linkedin, Mail } from 'lucide-react';
 export const siteConfig = {
   name: 'Berktan',
   fullName: 'Berktan Solmaz',
-  title: 'Software Engineer',
-  bio: "I'm a BEng Software Engineering student at the University of Westminster in London. I build full-stack web apps with React and Next.js, automate game servers, and tinker with ESP32/ESP8266 hardware. Alongside my studies I take on freelance work.",
+  title: 'Graduate Software Engineer',
+  /** Canonical origin. Everything that builds an absolute URL reads this. */
+  url: 'https://berktan.dev',
+  bio: "I'm a final year BEng Software Engineering student at the University of Westminster in London, graduating in 2027. I build full-stack web apps with React and Next.js, automate game servers, and tinker with ESP32/ESP8266 hardware. Alongside my studies I take on freelance work.",
   email: 'hello@berktan.dev',
   location: 'London, UK',
+  /** Central London, for the location widget and the Person schema. */
+  coordinates: { latitude: 51.5072, longitude: -0.1276 },
+  timeZone: 'Europe/London',
+  /**
+   * The placement year was cancelled on 2026-08-27, shortening the degree from
+   * four years to three. Final year starts September 2026, graduation is
+   * summer 2027. Every "graduate role" claim on the site rests on this date.
+   */
+  graduationYear: 2027,
+  /**
+   * Shown beside the contact form. A promise, not a fact, so it stays null
+   * until Berktan commits to a number himself. The UI renders nothing when it
+   * is null, the same way NowPlaying renders nothing when unconfigured.
+   */
+  responseTime: null as string | null,
   githubUsername: 'AkoSuminoe',
   available: true,
   socialLinks: [
@@ -69,7 +86,8 @@ export const education: EducationItem[] = [
     id: 'edu1',
     degree: 'BEng Software Engineering',
     university: 'University of Westminster, London',
-    period: '2024 - 2028',
+    /* Three years, not four: the placement year was cancelled 2026-08-27. */
+    period: '2024 - 2027',
     highlights: [
       'Coursework across object-oriented programming, database systems, algorithms, and machine learning and data mining.',
       'Building full-stack applications as part of coursework and personal work.',

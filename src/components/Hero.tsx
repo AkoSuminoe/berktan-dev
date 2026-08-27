@@ -71,7 +71,7 @@ export default function Hero() {
           <motion.div {...fadeUp(base)}>
             <span className="inline-flex items-center gap-2.5 rounded-full bg-white/[0.045] px-3.5 py-1.5 text-xs text-ink-dim shadow-[inset_0_1px_0_0_rgba(255,255,255,0.09),inset_0_0_0_1px_rgba(255,255,255,0.05)]">
               <span className="status-dot h-1.5 w-1.5 rounded-full bg-glow" />
-              Open to internships and placements
+              Open to 2027 graduate roles in London
             </span>
           </motion.div>
 
@@ -95,9 +95,9 @@ export default function Hero() {
             {...fadeUp(base + 0.36)}
             className="mt-8 max-w-xl text-base sm:text-lg leading-relaxed text-ink-dim"
           >
-            BEng Software Engineering student at the University of
-            Westminster, London, building polished products across web,
-            servers and hardware.
+            Final year BEng Software Engineering at the University of
+            Westminster, London, graduating in 2027. I build polished products
+            across web, servers and hardware.
           </motion.p>
 
           <motion.div
