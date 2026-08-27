@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 import { siteConfig } from '@/lib/site-config';
+import { SocialLinkList } from '@/components/SocialLinks';
 
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
@@ -63,24 +64,7 @@ export default function Contact() {
               Have a project in mind or just want to chat? I&apos;m always open
               to new opportunities and interesting conversations.
             </p>
-            <div className="mt-10 space-y-4">
-              {siteConfig.socialLinks.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex w-max items-center gap-3 text-sm text-ink-dim transition-colors duration-300 hover:text-ink"
-                >
-                  <link.icon className="h-4 w-4" strokeWidth={1.5} />
-                  {link.label}
-                  <ArrowUpRight
-                    className="h-3.5 w-3.5 opacity-0 transition-[opacity,transform] duration-200 ease-out-strong group-hover:translate-x-0.5 group-hover:opacity-100"
-                    strokeWidth={1.5}
-                  />
-                </a>
-              ))}
-            </div>
+            <SocialLinkList className="mt-10" />
           </motion.div>
 
           {/* Glass form */}

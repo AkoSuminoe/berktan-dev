@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { siteConfig } from '@/lib/site-config';
+import { SocialIconRow } from '@/components/SocialLinks';
 
 /*
  * Rendered on every route, so the links here are the site's floor: wherever a
@@ -34,20 +35,7 @@ export default function Footer() {
           ))}
         </nav>
 
-        <div className="order-2 flex items-center gap-5 sm:order-3">
-          {siteConfig.socialLinks.map((link) => (
-            <a
-              key={link.label}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-ink-faint transition-colors duration-[280ms] ease-out-strong hover:text-ink"
-              aria-label={link.label}
-            >
-              <link.icon className="h-4 w-4" strokeWidth={1.5} />
-            </a>
-          ))}
-        </div>
+        <SocialIconRow className="order-2 sm:order-3" />
       </div>
     </footer>
   );

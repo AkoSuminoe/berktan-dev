@@ -35,12 +35,31 @@ export const siteConfig = {
   cvUrl: null as string | null,
   githubUsername: 'AkoSuminoe',
   available: true,
+  /*
+   * GitHub, LinkedIn and email. No X: Berktan does not use it, and lucide's
+   * `X` export is the close glyph rather than the logo, so adding one would
+   * mean hand-rolling an SVG outside the single icon family.
+   */
   socialLinks: [
     { label: 'GitHub', href: 'https://github.com/AkoSuminoe', icon: Github },
     { label: 'LinkedIn', href: 'https://www.linkedin.com/in/yasinberktansolmaz', icon: Linkedin },
     { label: 'Email', href: 'mailto:hello@berktan.dev', icon: Mail },
   ],
 };
+
+/*
+ * True for a profile page on another origin, false for the mailto: entry.
+ *
+ * This distinction is load bearing in three places and was wrong in two of
+ * them: target="_blank" on a mailto: leaves an orphan blank tab behind while
+ * the mail client opens, rel="noopener" is meaningless on a scheme that opens
+ * no window, and rel="me" only means anything pointing at a profile. It is
+ * also the same predicate the Person schema uses to decide what belongs in
+ * sameAs, which is defined as a reference page for the entity.
+ */
+export function isProfileLink(href: string): boolean {
+  return href.startsWith('https://');
+}
 
 export type ExperienceItem = {
   id: string;

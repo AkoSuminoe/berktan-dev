@@ -1,4 +1,4 @@
-import { siteConfig, skills } from '@/lib/site-config';
+import { siteConfig, skills, isProfileLink } from '@/lib/site-config';
 import type { CaseStudy } from '@/lib/case-studies';
 import { SITE_URL, DEFAULT_TITLE, DEFAULT_DESCRIPTION } from '@/lib/seo';
 
@@ -114,7 +114,7 @@ export function buildProfilePageGraph(): JsonLdGraph {
       // Profile links only. The mailto: entry is already carried by `email`,
       // and sameAs is defined as "a URL to a reference page for the entity".
       sameAs: siteConfig.socialLinks
-        .filter((link) => link.href.startsWith('https://'))
+        .filter((link) => isProfileLink(link.href))
         .map((link) => link.href),
     },
   };
