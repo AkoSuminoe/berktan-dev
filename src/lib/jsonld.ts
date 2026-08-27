@@ -1,4 +1,5 @@
 import { siteConfig, skills } from '@/lib/site-config';
+import type { CaseStudy } from '@/lib/case-studies';
 import { SITE_URL, DEFAULT_TITLE, DEFAULT_DESCRIPTION } from '@/lib/seo';
 
 type JsonPrimitive = string | number | boolean | null;
@@ -115,6 +116,54 @@ export function buildProfilePageGraph(): JsonLdGraph {
       sameAs: siteConfig.socialLinks
         .filter((link) => link.href.startsWith('https://'))
         .map((link) => link.href),
+    },
+  };
+}
+
+/*
+ * BreadcrumbList. Built from the same array that renders the visible trail on
+ * the page, so the markup and the structured data can never claim different
+ * paths, which is the usual way this gets flagged in Search Console.
+ */
+export function buildBreadcrumbGraph(
+  items: { name: string; path: string }[]
+): JsonLdGraph {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: new URL(item.path, SITE_URL).toString(),
+    })),
+  };
+}
+
+/*
+ * CreativeWork for a case study, with `author` pointing at the Person node the
+ * home page defines rather than repeating it. The shared @id is what ties the
+ * two pages into one entity for a crawler.
+ */
+export function buildCaseStudyGraph(study: CaseStudy): JsonLdGraph {
+  const url = `${SITE_URL}/work/${study.slug}`;
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CreativeWork',
+    '@id': `${url}#work`,
+    url,
+    name: study.name,
+    headline: study.name,
+    description: study.description,
+    inLanguage: 'en-GB',
+    temporalCoverage: study.period,
+    about: study.stack,
+    keywords: study.stack.join(', '),
+    author: {
+      '@type': 'Person',
+      '@id': `${SITE_URL}/#person`,
+      name: siteConfig.fullName,
     },
   };
 }

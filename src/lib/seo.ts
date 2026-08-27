@@ -49,12 +49,19 @@ type PageMetadata = {
   keywords?: string[];
   noIndex?: boolean;
   ogType?: 'website' | 'article' | 'profile';
+  /**
+   * Root-relative path to a pre-rendered social card, e.g.
+   * "/og/volinor.png". Omit to inherit the card from the nearest parent
+   * segment: Next's opengraph-image file convention cascades, so every route
+   * already falls back to the one at the app root.
+   */
+  imagePath?: string;
 };
 
 /*
- * Deliberately does not set openGraph.images. Next's file convention
- * (opengraph-image.tsx) injects the image for each route segment on its own,
- * and an explicit `images` here would override it everywhere.
+ * Only sets openGraph.images when `imagePath` is given. Next's
+ * opengraph-image file convention injects and cascades the app-root card on
+ * its own, and an unconditional `images` here would override that everywhere.
  */
 export function buildMetadata({
   title,
@@ -64,6 +71,7 @@ export function buildMetadata({
   keywords = SITE_KEYWORDS,
   noIndex = false,
   ogType = 'website',
+  imagePath,
 }: PageMetadata = {}): Metadata {
   const fullTitle = title
     ? absoluteTitle
@@ -101,11 +109,19 @@ export function buildMetadata({
       siteName: siteConfig.fullName,
       locale: 'en_GB',
       type: ogType,
+      ...(imagePath
+        ? {
+            images: [
+              { url: imagePath, width: 1200, height: 630, alt: fullTitle },
+            ],
+          }
+        : {}),
     },
     twitter: {
       card: 'summary_large_image',
       title: fullTitle,
       description,
+      ...(imagePath ? { images: [imagePath] } : {}),
     },
   };
 }

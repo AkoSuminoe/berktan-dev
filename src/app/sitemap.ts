@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/seo';
+import { caseStudies } from '@/lib/case-studies';
 
 type IndexableRoute = {
   path: string;
@@ -8,21 +9,30 @@ type IndexableRoute = {
 };
 
 /*
- * Every indexable route, in one list. /tokyo is absent on purpose: it is
- * noindex and personal, see the note in robots.ts about why it is still
- * crawlable. /work, /work/[slug] and /privacy join this list in the commits
- * that create them, so the sitemap can never advertise a URL that 404s.
+ * Every indexable route. /tokyo is absent on purpose: it is noindex and
+ * personal, see the note in robots.ts about why it is still crawlable.
+ * /privacy joins this list in the commit that creates it, so the sitemap can
+ * never advertise a URL that 404s.
  */
-const ROUTES: IndexableRoute[] = [
+const STATIC_ROUTES: IndexableRoute[] = [
   { path: '/', priority: 1, changeFrequency: 'weekly' },
+  { path: '/work', priority: 0.9, changeFrequency: 'monthly' },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  // Build time, which for a statically exported page is genuinely when the
+  // Build time, which for a statically prerendered page is genuinely when the
   // content last changed.
   const lastModified = new Date();
 
-  return ROUTES.map((route) => ({
+  /* Derived from the case study list rather than written out, so adding a
+     study can never leave its page missing from the sitemap. */
+  const studyRoutes: IndexableRoute[] = caseStudies.map((study) => ({
+    path: `/work/${study.slug}`,
+    priority: 0.8,
+    changeFrequency: 'monthly',
+  }));
+
+  return [...STATIC_ROUTES, ...studyRoutes].map((route) => ({
     url: new URL(route.path, SITE_URL).toString(),
     lastModified,
     changeFrequency: route.changeFrequency,
