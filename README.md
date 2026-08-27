@@ -4,7 +4,7 @@
 
 **Personal portfolio of Yasin Berktan Solmaz. Dark, high-craft, quiet luxury.**
 
-![Next.js](https://img.shields.io/badge/Next.js-15.1.0-black?logo=next.js&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-15.5.24-black?logo=next.js&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38bdf8?logo=tailwindcss&logoColor=white)
@@ -88,9 +88,9 @@ Built with the Next.js App Router, React 19, TypeScript, Tailwind CSS v3 and Fra
 
 | Package | Version |
 | --- | --- |
-| next | 15.1.0 |
-| react | ^19.0.0 |
-| react-dom | ^19.0.0 |
+| next | ^15.5.24 |
+| react | ^19.2.8 |
+| react-dom | ^19.2.8 |
 | framer-motion | ^11.11.9 |
 | lucide-react | ^0.468.0 |
 | @radix-ui/react-slot | ^1.3.3 |
@@ -105,12 +105,12 @@ Built with the Next.js App Router, React 19, TypeScript, Tailwind CSS v3 and Fra
 | typescript | ^5 |
 | tailwindcss | ^3.4.16 |
 | eslint | ^9 |
-| eslint-config-next | 15.1.0 |
+| eslint-config-next | ^15.5.24 |
 | postcss | ^8.4.49 |
 | autoprefixer | ^10.4.20 |
 | @types/node | ^22 |
-| @types/react | ^19 |
-| @types/react-dom | ^19 |
+| @types/react | ^19.2.18 |
+| @types/react-dom | ^19.2.5 |
 
 This project uses **Tailwind CSS v3** (not v4) and the **App Router** (not the Pages Router).
 
