@@ -55,7 +55,7 @@ export default function NotFound() {
               </span>
             </Link>
             <Link
-              href="/#projects"
+              href="/work"
               className="group inline-flex items-center gap-3 rounded-full bg-white/[0.045] py-2 pl-6 pr-2 text-sm font-medium text-ink shadow-[inset_0_1px_0_0_rgba(255,255,255,0.09),inset_0_0_0_1px_rgba(255,255,255,0.05)] transition-[transform,box-shadow] duration-[280ms] ease-out-strong hover:scale-[1.025] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16),inset_0_0_0_1px_rgba(255,255,255,0.1)] active:scale-[0.975] active:duration-[120ms]"
             >
               See the work

@@ -1,12 +1,10 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
 import { buildMetadata } from '@/lib/seo';
 import { caseStudies } from '@/lib/case-studies';
 import { buildBreadcrumbGraph } from '@/lib/jsonld';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import JsonLd from '@/components/JsonLd';
-import GlassCard from '@/components/GlassCard';
+import CaseStudyCard from '@/components/CaseStudyCard';
 import CinematicSection from '@/components/CinematicSection';
 import Footer from '@/components/Footer';
 
@@ -55,46 +53,7 @@ export default function WorkIndex() {
                      the asymmetry matches the rhythm of the projects grid. */
                   className={index === 0 ? 'lg:col-span-2' : ''}
                 >
-                  <Link
-                    href={`/work/${study.slug}`}
-                    className="group/link block rounded-[2rem]"
-                  >
-                    <GlassCard className="h-full">
-                      <article className="flex h-full flex-col">
-                        <div className="flex items-start justify-between gap-4">
-                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-faint">
-                            Case study
-                          </p>
-                          <span className="shrink-0 font-mono text-xs text-ink-faint">
-                            {study.period}
-                          </span>
-                        </div>
-
-                        <h2 className="mt-6 text-2xl sm:text-3xl font-semibold tracking-tight text-ink">
-                          {study.name}
-                        </h2>
-                        <p className="mt-3 max-w-xl text-sm sm:text-base leading-relaxed text-ink-dim">
-                          {study.tagline}
-                        </p>
-
-                        <div className="mt-6 flex flex-wrap gap-x-4 gap-y-1.5">
-                          {study.stack.slice(0, 4).map((item) => (
-                            <span key={item} className="text-xs text-ink-faint">
-                              {item}
-                            </span>
-                          ))}
-                        </div>
-
-                        <span className="mt-auto inline-flex items-center gap-2 pt-8 text-sm font-medium text-glow">
-                          Read the case study
-                          <ArrowUpRight
-                            className="h-3.5 w-3.5 transition-transform duration-[280ms] ease-out-strong group-hover/link:-translate-y-0.5 group-hover/link:translate-x-0.5"
-                            strokeWidth={1.5}
-                          />
-                        </span>
-                      </article>
-                    </GlassCard>
-                  </Link>
+                  <CaseStudyCard study={study} />
                 </li>
               ))}
             </ul>

@@ -1,6 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { ArrowUpRight } from 'lucide-react';
 
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
@@ -33,6 +35,25 @@ export default function About() {
           freelance work and game-server automation, with ESP32 hardware
           projects currently in progress.
         </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.9, delay: 0.24, ease }}
+          className="mt-10"
+        >
+          <Link
+            href="/work"
+            className="group inline-flex items-center gap-2 text-sm font-medium text-glow transition-colors duration-[280ms] ease-out-strong hover:text-ink"
+          >
+            Read the case studies
+            <ArrowUpRight
+              className="h-3.5 w-3.5 transition-transform duration-[280ms] ease-out-strong group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+              strokeWidth={1.5}
+            />
+          </Link>
+        </motion.div>
       </div>
     </section>
   );

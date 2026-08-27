@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
@@ -67,18 +68,30 @@ export default function Experience() {
                         </p>
                       ))}
                     </div>
-                    <a
-                      href="https://volinor.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group mt-8 inline-flex w-max items-center gap-2 text-sm font-medium text-glow transition-colors duration-300 hover:text-ink"
-                    >
-                      volinor.com
-                      <ArrowUpRight
-                        className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                        strokeWidth={1.5}
-                      />
-                    </a>
+                    <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
+                      <Link
+                        href="/work/volinor"
+                        className="group inline-flex w-max items-center gap-2 text-sm font-medium text-glow transition-colors duration-[280ms] ease-out-strong hover:text-ink"
+                      >
+                        Read the case study
+                        <ArrowUpRight
+                          className="h-3.5 w-3.5 transition-transform duration-[280ms] ease-out-strong group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                          strokeWidth={1.5}
+                        />
+                      </Link>
+                      <a
+                        href="https://volinor.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group inline-flex w-max items-center gap-2 text-sm text-ink-dim transition-colors duration-[280ms] ease-out-strong hover:text-ink"
+                      >
+                        volinor.com
+                        <ArrowUpRight
+                          className="h-3.5 w-3.5 transition-transform duration-[280ms] ease-out-strong group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                          strokeWidth={1.5}
+                        />
+                      </a>
+                    </div>
                   </div>
 
                   {/* Abstract light composition: bloom + machined rings */}
