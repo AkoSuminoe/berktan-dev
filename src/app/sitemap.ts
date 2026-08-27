@@ -11,12 +11,11 @@ type IndexableRoute = {
 /*
  * Every indexable route. /tokyo is absent on purpose: it is noindex and
  * personal, see the note in robots.ts about why it is still crawlable.
- * /privacy joins this list in the commit that creates it, so the sitemap can
- * never advertise a URL that 404s.
  */
 const STATIC_ROUTES: IndexableRoute[] = [
   { path: '/', priority: 1, changeFrequency: 'weekly' },
   { path: '/work', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/privacy', priority: 0.2, changeFrequency: 'yearly' },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

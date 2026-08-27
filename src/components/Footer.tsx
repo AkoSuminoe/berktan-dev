@@ -5,11 +5,13 @@ import { SocialIconRow } from '@/components/SocialLinks';
 /*
  * Rendered on every route, so the links here are the site's floor: wherever a
  * recruiter stops reading, there is still a way to the work and a way to
- * reach him. /privacy joins this row in the commit that creates it.
+ * reach him. Privacy sits here because a policy nobody can find is not a
+ * policy.
  */
 const NAV = [
   { label: 'Work', href: '/work' },
   { label: 'Contact', href: '/#contact' },
+  { label: 'Privacy', href: '/privacy' },
 ];
 
 export default function Footer() {
