@@ -6,6 +6,7 @@ import SpotlightCursor from '@/components/SpotlightCursor';
 import Providers from '@/components/Providers';
 import Preloader from '@/components/Preloader';
 import NowPlaying from '@/components/NowPlaying';
+import Analytics from '@/components/Analytics';
 import { siteConfig } from '@/lib/site-config';
 import { buildMetadata, DEFAULT_TITLE, SITE_URL } from '@/lib/seo';
 
@@ -73,6 +74,7 @@ export default function RootLayout({
           <main className="relative z-10">{children}</main>
           <FloatingDock />
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
