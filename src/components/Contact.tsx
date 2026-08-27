@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 import { siteConfig } from '@/lib/site-config';
 import { SocialLinkList } from '@/components/SocialLinks';
+import LondonTime from '@/components/LondonTime';
 
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
@@ -64,6 +65,13 @@ export default function Contact() {
               Have a project in mind or just want to chat? I&apos;m always open
               to new opportunities and interesting conversations.
             </p>
+
+            {/* Where he is, before how to reach him: it is the first thing
+                a London recruiter needs to confirm. */}
+            <div className="mt-10">
+              <LondonTime />
+            </div>
+
             <SocialLinkList className="mt-10" />
           </motion.div>
 
