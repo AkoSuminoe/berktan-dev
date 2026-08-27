@@ -22,7 +22,7 @@ interface ComponentProps {
 export default function ProfileCard({
   name = "Berktan Solmaz",
   role = "Software Engineer",
-  email = "hello@berktan.dev",
+  email = "hi@berktan.dev",
   avatarSrc = "https://github.com/AkoSuminoe.png",
   statusText = "Available for work",
   statusColor = "bg-emerald-500",

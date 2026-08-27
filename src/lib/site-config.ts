@@ -7,7 +7,7 @@ export const siteConfig = {
   /** Canonical origin. Everything that builds an absolute URL reads this. */
   url: 'https://berktan.dev',
   bio: "I'm a final year BEng Software Engineering student at the University of Westminster in London, graduating in 2027. I build full-stack web apps with React and Next.js, automate game servers, and tinker with ESP32/ESP8266 hardware. Alongside my studies I take on freelance work.",
-  email: 'hello@berktan.dev',
+  email: 'hi@berktan.dev',
   location: 'London, UK',
   /** Central London, for the location widget and the Person schema. */
   coordinates: { latitude: 51.5072, longitude: -0.1276 },
@@ -43,7 +43,7 @@ export const siteConfig = {
   socialLinks: [
     { label: 'GitHub', href: 'https://github.com/AkoSuminoe', icon: Github },
     { label: 'LinkedIn', href: 'https://www.linkedin.com/in/yasinberktansolmaz', icon: Linkedin },
-    { label: 'Email', href: 'mailto:hello@berktan.dev', icon: Mail },
+    { label: 'Email', href: 'mailto:hi@berktan.dev', icon: Mail },
   ],
 };
 
