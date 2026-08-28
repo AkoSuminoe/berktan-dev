@@ -58,6 +58,12 @@ const clamp = (value: number, lo: number, hi: number) =>
 
 type MagneticDockItemProps = {
   item: DockItem;
+  /**
+   * Prefixed onto the href. Empty on the main site; the apex origin on any
+   * other hostname, where a bare "/#section" fragment would resolve against
+   * that host instead. A memoized primitive, so it does not defeat memo().
+   */
+  origin: string;
   index: number;
   /** Cursor x in rail space, already smoothed by the parent's spring. */
   pointerX: MotionValue<number>;
@@ -72,6 +78,7 @@ type MagneticDockItemProps = {
 
 const MagneticDockItem = memo(function MagneticDockItem({
   item,
+  origin,
   index,
   pointerX,
   influence,
@@ -103,7 +110,7 @@ const MagneticDockItem = memo(function MagneticDockItem({
   return (
     <a
       ref={(el) => registerRef(index, el)}
-      href={item.href}
+      href={`${origin}${item.href}`}
       /* pointerType, not onMouseEnter: a tap synthesises mouseenter, which is
          why the tooltip used to stick open on touch devices. */
       onPointerEnter={(event) => {

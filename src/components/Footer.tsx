@@ -14,7 +14,13 @@ const NAV = [
   { label: 'Privacy', href: '/privacy' },
 ];
 
-export default function Footer() {
+/*
+ * `origin` is set on routes served from another hostname, where a bare
+ * "/#contact" would resolve against that host instead of the main site. A hash
+ * never reaches the server, so this cannot be fixed in middleware: the request
+ * simply arrives as "/" and gets the page that hostname serves.
+ */
+export default function Footer({ origin = '' }: { origin?: string }) {
   return (
     <footer className="shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 pt-12 pb-28 sm:flex-row sm:pb-12 sm:justify-between sm:px-6">
@@ -29,7 +35,7 @@ export default function Footer() {
           {NAV.map((item) => (
             <Link
               key={item.label}
-              href={item.href}
+              href={`${origin}${item.href}`}
               className="text-sm text-ink-faint transition-colors duration-[280ms] ease-out-strong hover:text-ink"
             >
               {item.label}

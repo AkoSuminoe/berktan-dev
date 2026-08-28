@@ -112,6 +112,48 @@ export const caseStudies: CaseStudy[] = [
     ],
   },
   {
+    slug: 'whisper-subtitle-generator',
+    name: 'Whisper Subtitle Generator',
+    shortName: 'Subtitle generator',
+    tagline:
+      'A speech-to-subtitle service running on one GPU in a flat, with the limits that fact forces on it.',
+    role: 'Solo project',
+    period: '2026',
+    description:
+      'Case study: a Whisper large-v3 subtitle service with a FastAPI queue, captcha, and hard global budgets, self-hosted on a single consumer GPU and exposed through a Cloudflare Tunnel.',
+    repo: 'whisper-subtitle-generator',
+    stack: [
+      'Python',
+      'FastAPI',
+      'Whisper',
+      'PyTorch',
+      'Next.js',
+      'Cloudflare Turnstile',
+    ],
+    context: [
+      'Whisper transcribes well and formats badly. Raw output arrives as cues broken in the wrong places, at a pace nobody can read, with every proper noun spelled the way it sounded.',
+      'The harder problem was not the model, it was exposing it. A public demo backed by one consumer GPU on a domestic connection is a machine a stranger can occupy, so the interesting design work is all in what the service refuses to do.',
+    ],
+    approach: [
+      'A FastAPI service that accepts an upload, queues it, and reports position and progress back, so a wait is something a visitor can see rather than a spinner they have to trust.',
+      'Post-processing merges and splits cues to a readable pace, and a terms file corrects the proper nouns the model reliably mishears.',
+      'Limits are layered rather than singular: per-request size and duration caps, per-client hourly and daily rates, then global ceilings on queue depth, jobs, transcribed minutes and disk. The global ones persist across restarts, because a limit a process can forget by crashing is not a limit.',
+      'Cloudflare Turnstile in front of the upload, verified server side, so the cheap checks reject abuse before anything touches the GPU.',
+      'The tunnel routes /api to the Python service and everything else to the Next site under one hostname, which makes the browser same-origin with the API and removes CORS from the design entirely.',
+    ],
+    impact: [
+      'The demo is live rather than a screenshot, which is a different kind of claim to make on a portfolio.',
+      'Uploads and generated subtitles are deleted when a job expires, and nothing leaves the machine it was transcribed on.',
+    ],
+    links: [
+      { label: 'Try it live', href: 'https://whisper.berktan.dev' },
+      {
+        label: 'Source on GitHub',
+        href: 'https://github.com/AkoSuminoe/whisper-subtitle-generator',
+      },
+    ],
+  },
+  {
     slug: 'cs2-server-creator',
     name: 'CS2 Server Creator',
     shortName: 'CS2 Server Creator',

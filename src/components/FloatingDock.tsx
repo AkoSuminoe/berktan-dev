@@ -13,6 +13,7 @@ import {
 } from 'framer-motion';
 import { Home, User, Briefcase, Code2, FolderGit2, Mail } from 'lucide-react';
 import MagneticDockItem, { type DockItem } from '@/components/MagneticDockItem';
+import { useApexOrigin } from '@/hooks/useApexOrigin';
 
 /* Hrefs are absolute (/#section) so navigation works from /tokyo too */
 const dockItems: DockItem[] = [
@@ -36,6 +37,7 @@ const MAGNET_SPRING = { stiffness: 500, damping: 45 };
 export default function FloatingDock() {
   const [scrolled, setScrolled] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const origin = useApexOrigin();
   const { scrollY } = useScroll();
   const pathname = usePathname();
   const reduce = useReducedMotion();
@@ -150,6 +152,7 @@ export default function FloatingDock() {
               <MagneticDockItem
                 key={item.href}
                 item={item}
+                origin={origin}
                 index={index}
                 pointerX={pointerX}
                 influence={influence}

@@ -11,6 +11,7 @@ import {
   useReducedMotion,
 } from 'framer-motion';
 import { Mail } from 'lucide-react';
+import { useApexOrigin } from '@/hooks/useApexOrigin';
 
 /*
  * Mobile-only contact action.
@@ -34,6 +35,7 @@ export default function MobileContactFab() {
   const { scrollY } = useScroll();
   const pathname = usePathname();
   const reduce = useReducedMotion();
+  const origin = useApexOrigin();
 
   // Motion value drives it; setState only fires on threshold crossings.
   useMotionValueEvent(scrollY, 'change', (latest) => {
@@ -87,7 +89,7 @@ export default function MobileContactFab() {
           className="fixed bottom-24 right-4 z-[45] sm:hidden"
         >
           <Link
-            href="/#contact"
+            href={`${origin}/#contact`}
             className="material flex items-center gap-2.5 rounded-full py-3 pl-5 pr-5 text-sm font-medium text-ink transition-transform duration-[280ms] ease-out-strong active:scale-[0.96] active:duration-[120ms]"
           >
             <Mail className="h-4 w-4 text-glow" strokeWidth={1.5} />
