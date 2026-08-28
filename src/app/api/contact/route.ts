@@ -100,9 +100,65 @@ type ContactPayload = {
   name: string;
   email: string;
   message: string;
-  /* Honeypot. A real person never sees this field, so a filled one is a bot. */
-  company?: string;
+  /*
+   * Honeypot. A real person never sees this field, so a filled one is a bot.
+   *
+   * Deliberately NOT named `company`, `organization` or anything else in
+   * Chrome's address-autofill vocabulary. That was the first version and it
+   * was a bug: browser autofill and password managers routinely fill an
+   * organisation-shaped field even with autocomplete="off", which made the
+   * form report success while silently discarding a real message.
+   */
+  reference?: string;
+  /** Cloudflare Turnstile token. Ignored when no secret is configured. */
+  turnstileToken?: string;
 };
+
+const TURNSTILE_VERIFY_URL =
+  'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+
+/*
+ * Returns true when the request may proceed.
+ *
+ * No secret means no captcha: the check is skipped rather than failing every
+ * request, so the form keeps working before the keys exist and for anyone
+ * running the project locally. Same posture as the Resend `unconfigured`
+ * branch below.
+ */
+async function passesTurnstile(
+  token: string | undefined,
+  ip: string
+): Promise<boolean> {
+  const secret = process.env.TURNSTILE_SECRET;
+  if (!secret) return true;
+  if (!token) return false;
+
+  try {
+    const response = await fetch(TURNSTILE_VERIFY_URL, {
+      method: 'POST',
+      // Cloudflare documents this endpoint as form encoded, not JSON.
+      body: new URLSearchParams({
+        secret,
+        response: token,
+        // Scopes the token to the client that solved it, so one solved
+        // challenge cannot be replayed from somewhere else.
+        remoteip: ip,
+      }),
+    });
+
+    const result = (await response.json()) as { success?: boolean };
+    return result.success === true;
+  } catch (error) {
+    /*
+     * Cloudflare unreachable. Failing closed means a network blip between the
+     * home server and Cloudflare silently takes the contact form offline, and
+     * the request has already cleared the rate limiter, the honeypot and full
+     * validation by this point. Log it and let it through.
+     */
+    console.error('[contact] turnstile verification unreachable', error);
+    return true;
+  }
+}
 
 function fail(error: string, status: number) {
   return NextResponse.json({ ok: false, error }, { status });
@@ -115,22 +171,26 @@ function parsePayload(value: unknown): ContactPayload | null {
   const name = record.name;
   const email = record.email;
   const message = record.message;
-  const company = record.company;
+  const reference = record.reference;
+  const turnstileToken = record.turnstileToken;
 
   if (
     typeof name !== 'string' ||
     typeof email !== 'string' ||
     typeof message !== 'string' ||
-    (company !== undefined && typeof company !== 'string')
+    (reference !== undefined && typeof reference !== 'string') ||
+    (turnstileToken !== undefined && typeof turnstileToken !== 'string')
   ) {
     return null;
   }
 
-  return { name, email, message, company };
+  return { name, email, message, reference, turnstileToken };
 }
 
 export async function POST(request: Request) {
-  if (isRateLimited(clientKey(request))) {
+  const client = clientKey(request);
+
+  if (isRateLimited(client)) {
     return fail('rate_limited', 429);
   }
 
@@ -148,10 +208,15 @@ export async function POST(request: Request) {
   if (!payload) return fail('invalid', 400);
 
   /*
-   * Silent success for the honeypot. Telling a bot it was detected just tells
-   * whoever wrote it which field to leave alone next time.
+   * Silent to the client, loud to the operator. Telling a bot it was detected
+   * only tells whoever wrote it which field to leave alone next time, but a
+   * discarded message that leaves no trace anywhere is indistinguishable from
+   * a delivery failure when someone reports that mail is not arriving.
    */
-  if (payload.company && payload.company.trim().length > 0) {
+  if (payload.reference && payload.reference.trim().length > 0) {
+    console.warn(
+      '[contact] honeypot filled, message discarded without sending'
+    );
     return NextResponse.json({ ok: true });
   }
 
@@ -170,6 +235,16 @@ export async function POST(request: Request) {
     message.length > LIMITS.message.max
   ) {
     return fail('invalid', 400);
+  }
+
+  /*
+   * Last, because it is the only check here that makes an outbound HTTP call.
+   * A flood is already stopped by the rate limiter above at the cost of one
+   * map lookup, and a bot is already stopped by the honeypot, so neither ever
+   * reaches this.
+   */
+  if (!(await passesTurnstile(payload.turnstileToken, client))) {
+    return fail('captcha_failed', 400);
   }
 
   const apiKey = process.env.RESEND_API_KEY;

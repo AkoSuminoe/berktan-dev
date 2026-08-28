@@ -7,6 +7,10 @@ import { siteConfig } from '@/lib/site-config';
 import { SocialLinkList } from '@/components/SocialLinks';
 import LondonTime from '@/components/LondonTime';
 import ContactSuccessModal from '@/components/ContactSuccessModal';
+import Turnstile, {
+  TURNSTILE_SITE_KEY,
+  type TurnstileHandle,
+} from '@/components/Turnstile';
 
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
@@ -39,6 +43,8 @@ function messageForError(code: string): string {
       return `The form is not connected to a mailbox yet. ${FALLBACK_HINT}`;
     case 'too_large':
       return 'That message is too long to send through the form.';
+    case 'captcha_failed':
+      return `The captcha could not be verified. Try it once more, or ${FALLBACK_HINT.toLowerCase()}`;
     default:
       return `Something went wrong sending that. ${FALLBACK_HINT}`;
   }
@@ -51,10 +57,16 @@ export default function Contact() {
     message: '',
   });
   /* Honeypot. Never shown, never filled by a person. */
-  const [company, setCompany] = useState('');
+  const [reference, setReference] = useState('');
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const submitRef = useRef<HTMLButtonElement>(null);
+
+  /* Empty until the widget hands one over, and emptied again whenever it
+     stops being valid. Gating is skipped entirely when no site key exists. */
+  const [captchaToken, setCaptchaToken] = useState('');
+  const captchaRef = useRef<TurnstileHandle>(null);
+  const captchaRequired = Boolean(TURNSTILE_SITE_KEY);
 
   const validate = () => {
     const e: Partial<Record<Field, string>> = {};
@@ -83,6 +95,7 @@ export default function Contact() {
     event.preventDefault();
     if (status.kind === 'sending') return;
     if (!validate()) return;
+    if (captchaRequired && !captchaToken) return;
 
     setStatus({ kind: 'sending' });
 
@@ -90,7 +103,11 @@ export default function Contact() {
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ ...formData, company }),
+        body: JSON.stringify({
+          ...formData,
+          reference,
+          turnstileToken: captchaToken,
+        }),
       });
 
       const payload = (await response.json().catch(() => null)) as
@@ -98,6 +115,11 @@ export default function Contact() {
         | null;
 
       if (!response.ok || !payload?.ok) {
+        // Unconditional, because a token is single use and may already have
+        // been spent at the verify endpoint. Re-arming costs the visitor one
+        // click; leaving a spent token in place costs them a second failure
+        // with no visible cause.
+        captchaRef.current?.reset();
         setStatus({
           kind: 'error',
           message: messageForError(payload?.error ?? 'unknown'),
@@ -107,9 +129,11 @@ export default function Contact() {
 
       setFormData({ name: '', email: '', message: '' });
       setErrors({});
+      captchaRef.current?.reset();
       setStatus({ kind: 'sent' });
     } catch {
       // Offline, DNS, a tunnel that is down. Same recovery either way.
+      captchaRef.current?.reset();
       setStatus({ kind: 'error', message: messageForError('network') });
     }
   };
@@ -256,15 +280,14 @@ export default function Contact() {
                   aria-hidden
                   className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
                 >
-                  <label htmlFor="company">Company</label>
                   <input
-                    id="company"
-                    name="company"
+                    id="reference"
+                    name="reference"
                     type="text"
                     tabIndex={-1}
                     autoComplete="off"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
+                    value={reference}
+                    onChange={(e) => setReference(e.target.value)}
                   />
                 </div>
 
@@ -286,11 +309,24 @@ export default function Contact() {
                   </div>
                 )}
 
+                {/* Renders nothing until a site key exists, so the form is
+                    unchanged for a clone or a local run. */}
+                <Turnstile
+                  ref={captchaRef}
+                  onToken={setCaptchaToken}
+                  onError={() =>
+                    setStatus({
+                      kind: 'error',
+                      message: messageForError('captcha_failed'),
+                    })
+                  }
+                />
+
                 <div>
                   <button
                     ref={submitRef}
                     type="submit"
-                    disabled={sending}
+                    disabled={sending || (captchaRequired && !captchaToken)}
                     className="group inline-flex items-center gap-3 rounded-full bg-ink py-2 pl-6 pr-2 text-sm font-medium text-abyss transition-transform duration-[280ms] ease-out-strong hover:scale-[1.025] active:scale-[0.975] active:duration-[120ms] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow/50 focus-visible:ring-offset-4 focus-visible:ring-offset-abyss"
                   >
                     {sending ? 'Sending' : 'Send message'}
