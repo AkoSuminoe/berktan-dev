@@ -53,6 +53,14 @@ The site is self-hosted on a Node server behind a Cloudflare Tunnel rather than 
 - Every page carries its own canonical URL, title, description, social card and structured data.
 - The home page leads with the case study cards and filters any repo that already has one out of the live GitHub feed, so nothing appears twice saying less the second time.
 
+### Whisper Subtitle Demo
+
+- A live speech-to-subtitle demo served at `whisper.berktan.dev` from this same application.
+- Middleware rewrites the subdomain to the demo page and 308-redirects `/whisper` on the apex across to it, so exactly one canonical URL exists rather than the same page answering on two hostnames.
+- The tunnel routes `/api` on that hostname straight to the Python service, which makes the browser same-origin with the API: no CORS, no preflight, no origin allowlist to keep in step.
+- Upload progress uses `XMLHttpRequest`, the only API that reports it, and job progress is a `clip-path` reveal on a critically damped spring rather than an animated `width`.
+- The API is a separate project: [whisper-subtitle-generator](https://github.com/AkoSuminoe/whisper-subtitle-generator).
+
 ### Search and Structured Data
 
 - One metadata module builds every title, description, canonical URL, Open Graph block and Twitter card, so no route can drift from another.
@@ -64,6 +72,7 @@ The site is self-hosted on a Node server behind a Cloudflare Tunnel rather than 
 ### Contact Pipeline
 
 - `POST /api/contact` validates every field server side, independently of the browser, and size-caps the body before parsing it.
+- Cloudflare Turnstile gates the send button, verified server side. Verification runs last of all the checks, since it is the only one making an outbound call, and is skipped entirely when no secret is configured.
 - A hidden honeypot field returns a plain success rather than announcing that it was detected.
 - In-memory sliding-window rate limiting, five messages per hour per client, keyed on `cf-connecting-ip`.
 - Delivery through Resend, with `Reply-To` set to the sender so a reply goes straight back to them.
@@ -200,10 +209,15 @@ Create a `.env.local` file in the project root. A `.env.local.example` is commit
 | `CONTACT_FROM` | No | Sender address, for example `Portfolio <noreply@send.example.com>`. Required alongside `RESEND_API_KEY` |
 | `CONTACT_TO` | No | Recipient. Defaults to the address in `site-config.ts` |
 | `NEXT_PUBLIC_CF_BEACON_TOKEN` | No | Cloudflare Web Analytics. Absent means no beacon is rendered at all |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | No | Captcha widget. Absent means no widget and no gate |
+| `TURNSTILE_SECRET` | No | Verifies captcha tokens. Absent means verification is skipped |
+| `NEXT_PUBLIC_WHISPER_API_URL` | No | Empty in production, since the tunnel makes the demo API same-origin. `http://localhost:8000` in development |
 
 If the three Spotify variables are absent, the widget renders nothing at all and the rest of the site works normally.
 
-`NEXT_PUBLIC_CF_BEACON_TOKEN` is read at **build** time, not at start time, because `NEXT_PUBLIC_` values are inlined into the output. Setting it before `npm start` without rebuilding leaves the beacon silently absent.
+Every `NEXT_PUBLIC_` value is read at **build** time, not at start time, because they are inlined into the output. Setting one before `npm start` without rebuilding leaves the feature silently absent. This applies to the beacon token, the Turnstile site key and the Whisper API URL alike.
+
+A Turnstile **site** key is public by design: Cloudflare expects it in the HTML of every page carrying a widget and it grants nothing on its own, which is why the `NEXT_PUBLIC_` prefix is correct for it and never for the secret. One Turnstile site can cover several hostnames, so the apex and the demo subdomain can share a key pair; if they do, `TURNSTILE_SECRET` here must match the one in the Whisper server's environment.
 
 **If you configure Resend, verify a subdomain rather than the root domain.** A domain already using a mail router such as Cloudflare Email Routing publishes an SPF record at the root, and a second SPF `TXT` record on the same name is a permanent error that breaks inbound and outbound delivery at once. Verify something like `send.example.com`, send from there, and leave the root records untouched.
 
@@ -313,6 +327,23 @@ npm start
 `next.config.js` is configured for that. `X-Powered-By` is removed, four security response headers are set, and the optimised-image cache TTL is raised from the 60 second default to seven days so a small origin is not re-optimising the same remote images all day. HSTS is deliberately left to the CDN, where it can be switched off again, rather than baked into origin responses where a browser caches it for the full `max-age`.
 
 `sharp` is a runtime dependency because self-hosted image optimisation requires it.
+
+### Subdomains and the tunnel
+
+Both hostnames are served by this one application, split inside the Cloudflare Tunnel. Path rules are evaluated in order, so the API rule has to come first:
+
+```yaml
+ingress:
+  - hostname: whisper.berktan.dev
+    path: ^/api/.*
+    service: http://localhost:8000
+  - hostname: whisper.berktan.dev
+    service: http://localhost:3000
+  - hostname: berktan.dev
+    service: http://localhost:3000
+```
+
+Chrome rendered by the root layout needs care under this arrangement. Every dock and footer navigation href is a `/#section` fragment, and a fragment never reaches the server, so on the subdomain those requests arrive as `/` and would land on the demo with a hash matching nothing. `useApexOrigin` resolves the correct origin in the browser, because middleware cannot tell the two cases apart. It returns an empty string during server rendering so hydration matches; reading the `Host` header instead would make the root layout dynamic and opt the whole site out of static generation.
 
 ### Social cards
 
