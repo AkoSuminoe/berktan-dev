@@ -404,37 +404,56 @@ export default function SubtitleDemo() {
           </div>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-8 rounded-2xl bg-white/[0.03] p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)] sm:p-5">
           <button
             type="button"
             onClick={() => setTermsOpen((open) => !open)}
             aria-expanded={termsOpen}
-            className="text-sm text-ink-faint transition-colors duration-[280ms] ease-out-strong hover:text-ink-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow/50"
+            className="flex w-full items-start justify-between gap-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow/50"
           >
-            {termsOpen ? '−' : '+'} Custom terms (optional)
+            <span>
+              <span className="block text-sm text-ink">Custom terms</span>
+              <span className="mt-1 block text-sm text-ink-faint">
+                Names, brands or jargon it keeps getting wrong? Spell them out.
+              </span>
+            </span>
+            <span className="shrink-0 rounded-full bg-white/[0.06] px-3 py-1 text-sm text-ink-dim">
+              {termsOpen ? 'Hide' : 'Add'}
+            </span>
           </button>
 
           {termsOpen && (
-            <div className="mt-3">
+            <div className="mt-4">
               <p className="text-sm text-ink-faint">
-                Corrections for words the model mishears. Applied to this file
-                only, then discarded.
+                Put what it hears on the left, what it should say on the right.
               </p>
+              <pre className="mt-3 overflow-x-auto rounded-xl bg-black/20 p-3 font-mono text-[13px] text-ink-dim">
+{`{
+  "reyki": "reiki",
+  "chat gpt": "ChatGPT"
+}`}
+              </pre>
               <textarea
-                rows={4}
+                rows={5}
                 spellCheck={false}
                 disabled={busy}
                 value={termsText}
                 onChange={(event) => onTermsChange(event.target.value)}
-                placeholder={'{ "reyki": "reiki", "cakira": "cakra" }'}
-                className={`mt-3 w-full rounded-2xl bg-white/[0.03] p-3 font-mono text-[13px] text-ink shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)] outline-none transition-shadow duration-[280ms] ease-out-strong placeholder:text-ink-faint/60 disabled:opacity-50 ${
+                placeholder={'{ "reyki": "reiki" }'}
+                aria-label="Custom terms"
+                className={`mt-3 w-full rounded-xl bg-white/[0.03] p-3 font-mono text-[13px] text-ink shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)] outline-none transition-shadow duration-[280ms] ease-out-strong placeholder:text-ink-faint/60 disabled:opacity-50 ${
                   termsError
                     ? 'shadow-[inset_0_0_0_1px_rgba(248,113,113,0.45)]'
                     : 'focus:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]'
                 }`}
               />
-              {termsError && (
+              {termsError ? (
                 <p className="mt-2 text-sm text-red-400">{termsError}</p>
+              ) : (
+                <p className="mt-2 text-sm text-ink-faint">
+                  Capitals do not matter, and only whole words are replaced.
+                  Used for this file only, then thrown away.
+                </p>
               )}
             </div>
           )}
