@@ -58,6 +58,9 @@ export default function SubtitleDemo() {
   const [token, setToken] = useState('');
   const [limits, setLimits] = useState<WhisperLimits | null>(null);
   const [health, setHealth] = useState<WhisperHealth | null>(null);
+  const [termsText, setTermsText] = useState('');
+  const [termsError, setTermsError] = useState('');
+  const [termsOpen, setTermsOpen] = useState(false);
 
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
@@ -85,6 +88,28 @@ export default function SubtitleDemo() {
       .catch(() => undefined);
   }, []);
 
+  const onTermsChange = useCallback((value: string) => {
+    setTermsText(value);
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setTermsError('');
+      return;
+    }
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        setTermsError('Must be an object, like {"wrong": "correct"}.');
+        return;
+      }
+      const bad = Object.entries(parsed as Record<string, unknown>).find(
+        ([, value]) => typeof value !== 'string',
+      );
+      setTermsError(bad ? `"${bad[0]}" must map to text.` : '');
+    } catch {
+      setTermsError('Not valid JSON yet.');
+    }
+  }, []);
+
   const reset = useCallback(() => {
     if (pollRef.current) clearTimeout(pollRef.current);
     xhrRef.current?.abort();
@@ -94,6 +119,8 @@ export default function SubtitleDemo() {
     setSrt('');
     setError('');
     setCopied(false);
+    setTermsText('');
+    setTermsError('');
   }, []);
 
   const selectFile = useCallback(
@@ -156,6 +183,7 @@ export default function SubtitleDemo() {
     form.append('file', file);
     form.append('language', language);
     form.append('turnstile_token', token);
+    if (termsText.trim()) form.append('terms', termsText.trim());
 
     /* XHR rather than fetch: only XHR reports upload progress, and a large
        video on a home connection is a long enough wait to need one. */
@@ -269,7 +297,11 @@ export default function SubtitleDemo() {
      fail with a server error the visitor cannot act on. */
   const captchaMismatch = Boolean(health?.captcha_required) && !TURNSTILE_SITE_KEY;
   const canStart =
-    Boolean(file) && !busy && !captchaMismatch && (!TURNSTILE_SITE_KEY || Boolean(token));
+    Boolean(file) &&
+    !busy &&
+    !captchaMismatch &&
+    !termsError &&
+    (!TURNSTILE_SITE_KEY || Boolean(token));
 
   return (
     <div className="bezel">
@@ -370,6 +402,42 @@ export default function SubtitleDemo() {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="mt-8">
+          <button
+            type="button"
+            onClick={() => setTermsOpen((open) => !open)}
+            aria-expanded={termsOpen}
+            className="text-sm text-ink-faint transition-colors duration-[280ms] ease-out-strong hover:text-ink-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow/50"
+          >
+            {termsOpen ? '−' : '+'} Custom terms (optional)
+          </button>
+
+          {termsOpen && (
+            <div className="mt-3">
+              <p className="text-sm text-ink-faint">
+                Corrections for words the model mishears. Applied to this file
+                only, then discarded.
+              </p>
+              <textarea
+                rows={4}
+                spellCheck={false}
+                disabled={busy}
+                value={termsText}
+                onChange={(event) => onTermsChange(event.target.value)}
+                placeholder={'{ "reyki": "reiki", "cakira": "cakra" }'}
+                className={`mt-3 w-full rounded-2xl bg-white/[0.03] p-3 font-mono text-[13px] text-ink shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)] outline-none transition-shadow duration-[280ms] ease-out-strong placeholder:text-ink-faint/60 disabled:opacity-50 ${
+                  termsError
+                    ? 'shadow-[inset_0_0_0_1px_rgba(248,113,113,0.45)]'
+                    : 'focus:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]'
+                }`}
+              />
+              {termsError && (
+                <p className="mt-2 text-sm text-red-400">{termsError}</p>
+              )}
+            </div>
+          )}
         </div>
 
         <Turnstile
