@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   motion,
   AnimatePresence,
@@ -8,14 +8,17 @@ import {
   useSpring,
   useTransform,
 } from 'framer-motion';
-import { ArrowUpRight, Check } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
+import ChecklistItem from '@/components/tokyo/ChecklistItem';
+import PersonalPlan from '@/components/tokyo/PersonalPlan';
 import {
   tokyoDays,
   tokyoMeta,
   totalItemCount,
   type TokyoDay,
 } from '@/lib/tokyo-itinerary';
+import { personalItemIds, personalItemCount } from '@/lib/tokyo-personal';
 
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /* Strong ease-out. Anything entering, leaving, or answering a press uses it. */
@@ -32,13 +35,18 @@ const STORAGE_KEY = 'tokyo-checklist-v1';
 const PROGRESS_SPRING = { stiffness: 220, damping: 30, restDelta: 0.2 };
 
 /**
- * Every id the itinerary can legitimately produce. Saved progress is filtered
+ * Every id either tab can legitimately produce. Saved progress is filtered
  * against this so a stale entry from an older itinerary (or hand-edited
  * localStorage) can never count towards the progress bar.
+ *
+ * Both lists must be here. When this was WWC-only, a personal checkbox wrote
+ * to localStorage and was then silently discarded on the next load, which
+ * reads as data loss rather than as validation.
  */
-const VALID_ITEM_IDS = new Set(
-  tokyoDays.flatMap((day) => day.items.map((item) => item.id))
+const WWC_ITEM_IDS = tokyoDays.flatMap((day) =>
+  day.items.map((item) => item.id)
 );
+const VALID_ITEM_IDS = new Set([...WWC_ITEM_IDS, ...personalItemIds]);
 
 function readSavedIds(): Set<string> {
   try {
@@ -74,88 +82,6 @@ function mapsUrlForDay(day: TokyoDay): string | null {
     .map((s) => encodeURIComponent(s))
     .join('/')}`;
 }
-
-/* ------------------------------------------------------------------ */
-/* Checklist item: memoized so a toggle re-renders only itself         */
-/* ------------------------------------------------------------------ */
-
-const ChecklistItem = memo(function ChecklistItem({
-  id,
-  label,
-  detail,
-  checked,
-  onToggle,
-}: {
-  id: string;
-  label: string;
-  detail?: string;
-  checked: boolean;
-  onToggle: (id: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="checkbox"
-      aria-checked={checked}
-      onClick={() => onToggle(id)}
-      className="group/item flex w-full items-start gap-3.5 rounded-xl px-3 py-2.5 text-left transition-[background-color,transform] duration-200 ease-out-strong hover:bg-white/[0.03] active:scale-[0.99] active:duration-100 motion-reduce:transform-none"
-    >
-      <span
-        aria-hidden
-        className={`mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[7px] transition-[background-color,box-shadow] duration-200 ease-out-strong ${
-          checked
-            ? 'bg-glow/15 shadow-[inset_0_0_0_1px_rgba(130,143,255,0.55),0_0_12px_-2px_rgba(130,143,255,0.5)]'
-            : 'bg-white/[0.03] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),inset_0_0_0_1px_rgba(255,255,255,0.07)] group-hover/item:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2),inset_0_0_0_1px_rgba(255,255,255,0.14)]'
-        }`}
-      >
-        <AnimatePresence initial={false}>
-          {checked && (
-            <motion.span
-              initial={{ scale: 0.62, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              /*
-               * Bounce is earned here: the user physically committed to a tap,
-               * so the mark lands with a little momentum. 0.28 is the top of
-               * the useful range; past that it reads as a toy. Never scale
-               * from 0 either, nothing arrives out of nothing.
-               *
-               * Exit is half the length and flat: removing a tick is the
-               * system responding, not the user deciding.
-               */
-              transition={{ type: 'spring', duration: 0.3, bounce: 0.28 }}
-              exit={{
-                scale: 0.72,
-                opacity: 0,
-                transition: { duration: 0.14, ease: easeOut },
-              }}
-            >
-              <Check className="h-3 w-3 text-glow" strokeWidth={2.5} />
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </span>
-
-      <span className="min-w-0">
-        <span
-          className={`block text-sm font-medium transition-colors duration-200 ease-out-strong ${
-            checked ? 'text-ink-faint line-through' : 'text-ink'
-          }`}
-        >
-          {label}
-        </span>
-        {detail && (
-          <span
-            className={`mt-0.5 block text-xs leading-relaxed transition-colors duration-200 ${
-              checked ? 'text-ink-faint/60' : 'text-ink-dim'
-            }`}
-          >
-            {detail}
-          </span>
-        )}
-      </span>
-    </button>
-  );
-});
 
 /* ------------------------------------------------------------------ */
 /* Day card                                                            */
@@ -257,11 +183,24 @@ export default function TokyoPlanner() {
     });
   }, []);
 
-  const completed = checkedIds.size;
-  const pct = Math.min(
-    100,
-    Math.round((completed / Math.max(totalItemCount, 1)) * 100)
-  );
+  /*
+   * Progress describes the panel you are looking at, not the union of both.
+   * A single bar over both lists would mean the number moves when you switch
+   * tabs without ticking anything, and personal items would push a
+   * WWC-denominated percentage past 100.
+   *
+   * Counted by filtering the id lists rather than iterating the Set, because
+   * the project compiles to ES5 where Set iteration needs downlevelIteration.
+   */
+  const { completed, total } = useMemo(() => {
+    const ids = tab === 'wwc' ? WWC_ITEM_IDS : personalItemIds;
+    return {
+      completed: ids.filter((id) => checkedIds.has(id)).length,
+      total: tab === 'wwc' ? totalItemCount : personalItemCount,
+    };
+  }, [tab, checkedIds]);
+
+  const pct = Math.min(100, Math.round((completed / Math.max(total, 1)) * 100));
 
   /*
    * The fill is a full-width gradient revealed by clip-path, never an animated
@@ -319,7 +258,7 @@ export default function TokyoPlanner() {
             />
           </div>
           <p className="shrink-0 font-mono text-xs text-ink-dim">
-            {pct}% completed
+            {pct}% {tab === 'wwc' ? 'programme' : 'personal'}
           </p>
         </div>
       </div>
@@ -432,36 +371,7 @@ export default function TokyoPlanner() {
                 }}
                 transition={{ duration: 0.36, ease: easeOut }}
               >
-                <GlassCard coreClassName="relative overflow-hidden p-8 sm:p-12">
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_80%_at_75%_10%,rgba(130,143,255,0.09),transparent_60%)]"
-                  />
-                  <div className="relative">
-                    <h3 className="text-2xl font-semibold tracking-tight text-ink">
-                      Personal itinerary
-                    </h3>
-                    <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-dim">
-                      My own list of places lands here once the WWC schedule
-                      settles. Free evenings and the two open days are up for
-                      grabs.
-                    </p>
-                    <div aria-hidden className="mt-8 space-y-3">
-                      {[0, 1, 2].map((i) => (
-                        <div
-                          key={i}
-                          className="flex items-center gap-3.5 rounded-xl bg-white/[0.02] px-4 py-3.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),inset_0_0_0_1px_rgba(255,255,255,0.028)]"
-                        >
-                          <span className="h-[18px] w-[18px] rounded-[7px] bg-white/[0.03] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),inset_0_0_0_1px_rgba(255,255,255,0.07)]" />
-                          <span
-                            className="h-2.5 rounded-full bg-white/[0.06]"
-                            style={{ width: `${52 - i * 12}%` }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </GlassCard>
+                <PersonalPlan checkedIds={checkedIds} onToggle={onToggle} />
               </motion.div>
             )}
           </AnimatePresence>
