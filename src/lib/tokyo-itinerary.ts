@@ -33,6 +33,12 @@ export const tokyoMeta = {
     name: 'Hyatt House Tokyo Shibuya',
     address: '3-3 Sakuragaoka-cho, Shibuya-ku, Tokyo 150-0031',
     mapsQuery: HOTEL_QUERY,
+    /*
+     * Approximate, geocoded from the Student Pack address rather than given by
+     * it. Good to a block, which is all the walk-time estimates in
+     * `tokyo-nights.ts` need; do not treat it as a survey point.
+     */
+    coords: { lat: 35.6555, lng: 139.7005 },
   },
   outbound: {
     flight: 'BA007',

@@ -59,6 +59,12 @@ export type Shop = {
   opens: string;
   closes: string;
   closedDays?: Weekday[];
+  /**
+   * Minutes on foot from the hotel. Set only where a source states it, which
+   * for shops means the two the Student Pack places on Sakuragaoka-cho itself.
+   * An undefined walk is an unknown walk, not a short one.
+   */
+  walkMinutes?: number;
   note?: string;
 };
 
@@ -81,7 +87,8 @@ export const shops: Shop[] = [
     coords: { lat: 35.6568, lng: 139.7008 },
     opens: '11:00',
     closes: '20:00',
-    note: 'Second-hand. Same street as the hotel, so it costs nothing to look in.',
+    walkMinutes: 3,
+    note: 'Second-hand. Sakuragaoka-cho, the hotel street, so it costs nothing to look in.',
   },
   {
     id: 'ishibashi',
@@ -163,14 +170,21 @@ export type Dinner = {
   opens?: string;
   closes?: string;
   closedDays?: Weekday[];
+  /** Minutes on foot from the hotel. Only where a source states it. */
+  walkMinutes?: number;
   note?: string;
   /**
-   * Set when the trip has no evening for it. Three of the eight budgeted
-   * dinners fall here: two evenings are fed by the school and the last has a
-   * 05:00 coach. Kept in the data rather than deleted, so the page can say
-   * where 9,000 yen of the budget went.
+   * Set when the trip has no evening for it. Two of the eight budgeted dinners
+   * fall here. Kept in the data rather than deleted, so the page can say where
+   * 4,000 yen of the budget went.
    */
   droppedReason?: string;
+  /**
+   * Set when he eats this but does not pay for it. Distinct from dropped, and
+   * the distinction is the point: a covered meal happens, a dropped one does
+   * not. Neither reaches `budget.dinners`, because that counts money spent.
+   */
+  coveredReason?: string;
 };
 
 export const dinners: Dinner[] = [
@@ -228,18 +242,17 @@ export const dinners: Dinner[] = [
     coords: { lat: 35.6558, lng: 139.6995 },
     opens: '17:00',
     closes: '23:00',
-    note: 'Needs a reservation two to three weeks ahead.',
+    walkMinutes: 3,
+    note: 'Sakuragaokacho 27-1, the hotel street. Needs a reservation two to three weeks ahead.',
   },
   {
     id: 'yakiniku',
-    name: 'Shibuya Udagawacho',
+    name: 'Halal Wagyu Yakiniku and Ramen Naruto',
     kind: 'Yakiniku',
     jpy: 5000,
     area: 'Shibuya',
-    coords: { lat: 35.661, lng: 139.6985 },
-    note: 'A la carte beats the all-you-can-eat sets.',
-    droppedReason:
-      'No evening left. Five free nights, eight dinners planned.',
+    coveredReason:
+      'This is Sunday\'s group dinner. The school pays for it, so the 5,000 yen still leaves the budget, but the meal is not lost.',
   },
   {
     id: 'tempura',
@@ -420,11 +433,88 @@ export const shoppingItems: ShoppingItem[] = [
   },
 ];
 
-/** Not tickable: an allowance rather than a purchase. */
+/**
+ * Not tickable: allowances rather than purchases. None of these ids appear in
+ * `personalItemIds`, so adding a line here cannot affect saved progress.
+ */
 export const dailyAllowance = [
   { id: 'suica', label: 'Suica and local transport', jpy: 9000, note: 'About 1,000 a day' },
   { id: 'konbini', label: 'Konbini, coffee, water', jpy: 7000 },
+  {
+    id: 'lunch-free-days',
+    label: 'Lunch on 5 and 6 September',
+    jpy: 3000,
+    note: 'WWC covers meals during programme activities; those two days are not',
+  },
+  {
+    id: 'nightlife',
+    label: 'Nightlife',
+    jpy: 15000,
+    note: 'Four assigned nights, with room for one Bellovisto if it is wanted',
+  },
 ];
+
+/* ------------------------------------------------------------------ */
+/* Baggage                                                             */
+/* ------------------------------------------------------------------ */
+
+/** One checked bag on BA008, plus one hand bag. */
+export const BAGGAGE_ALLOWANCE_KG = 23;
+
+export type WeightGroup = {
+  id: string;
+  label: string;
+  kg: number;
+  itemIds: string[];
+};
+
+/*
+ * The Student Pack estimates weight by group, not by item, so the groups are
+ * kept as given rather than split into per-item numbers nobody stated.
+ *
+ * `weightSoFar` divides a group's weight evenly across its items. That split is
+ * an approximation and the panel says so; the alternative, counting a group
+ * only once every item in it is ticked, reads zero for most of the trip and
+ * would never count the gifts at all, because "spare, unallocated" may never be
+ * bought. An even split is approximately right the whole way through and lands
+ * exactly right at the end.
+ */
+export const weightGroups: WeightGroup[] = [
+  { id: 'w-crybaby', label: 'Dunlop Cry Baby', kg: 1.7, itemIds: ['buy-crybaby'] },
+  {
+    id: 'w-boss',
+    label: 'Two BOSS pedals',
+    kg: 1.0,
+    itemIds: ['buy-ce2w', 'buy-mt2w'],
+  },
+  {
+    id: 'w-figure',
+    label: 'Scale figure, boxed',
+    kg: 1.2,
+    itemIds: ['buy-figure-new'],
+  },
+  {
+    id: 'w-gifts',
+    label: 'Gifts and omiyage',
+    kg: 1.5,
+    itemIds: shoppingItems
+      .filter((item) => item.category === 'gifts')
+      .map((item) => item.id),
+  },
+];
+
+/** What the four groups come to. 5.4 kg; the Student Pack rounds it to 5.5. */
+export const plannedWeightKg = weightGroups.reduce(
+  (total, group) => total + group.kg,
+  0
+);
+
+export function weightSoFar(checkedIds: Set<string>): number {
+  return weightGroups.reduce((total, group) => {
+    const bought = group.itemIds.filter((id) => checkedIds.has(id)).length;
+    return total + (group.kg * bought) / group.itemIds.length;
+  }, 0);
+}
 
 /* ------------------------------------------------------------------ */
 /* The assignment                                                      */
@@ -450,6 +540,13 @@ export type PersonalDay = {
   rationale: string;
   stops: Stop[];
   dinnerId?: string;
+  /**
+   * A meal the school provides. Deliberately not `dinnerId`: that field feeds
+   * `assignedDinners`, and through it `budget.dinners` and `personalItemIds`.
+   * Routing a free meal through it would bill him 5,000 yen he never spends
+   * and put a checkbox on a dinner he cannot decline.
+   */
+  coveredDinnerId?: string;
   /** Set when the evening is already committed by the programme. */
   eveningNote?: string;
 };
@@ -502,7 +599,9 @@ export const personalDays: PersonalDay[] = [
         detail: 'Only if Ikebe is out of stock. Closes 19:00, so go early.',
       },
     ],
-    eveningNote: 'Group briefing 17:00, then the group dinner. School provided.',
+    coveredDinnerId: 'yakiniku',
+    eveningNote:
+      'Group briefing at the hotel, 17:00, then the group dinner. School provided.',
   },
   {
     dayId: 'day-3',
@@ -613,6 +712,11 @@ export const assignedDinners = dinners.filter((dinner) =>
 
 export const droppedDinners = dinners.filter((dinner) =>
   Boolean(dinner.droppedReason)
+);
+
+/** Eaten but not paid for, so counted nowhere in the budget. */
+export const coveredDinners = dinners.filter((dinner) =>
+  Boolean(dinner.coveredReason)
 );
 
 const sum = (values: number[]) => values.reduce((total, n) => total + n, 0);
@@ -741,6 +845,16 @@ export function findViolations(): Violation[] {
     });
   }
 
+  // Eaten, but by someone else's card.
+  for (const dinner of coveredDinners) {
+    found.push({
+      id: `covered-${dinner.id}`,
+      severity: 'note',
+      title: `Covered: ${dinner.kind}, ${dinner.name}`,
+      detail: dinner.coveredReason ?? '',
+    });
+  }
+
   // Things the documents cannot settle.
   found.push(
     {
@@ -759,24 +873,31 @@ export function findViolations(): Violation[] {
     },
     {
       id: 'baggage',
-      severity: 'warning',
-      title: 'The Cry Baby alone is 1.7 kg',
+      severity: 'note',
+      title: `The shopping weighs about ${plannedWeightKg.toFixed(1)} kg against a ${BAGGAGE_ALLOWANCE_KG} kg allowance`,
       detail:
-        'Four pedals travel home as one lump. Check the return allowance before the airport, not at the desk.',
+        'Comfortable, but the Student Pack estimate counts one scale figure and two are on the list, so the real number is a little higher. One checked bag and one hand bag on BA008.',
     },
     {
       id: 'royce-hours',
       severity: 'warning',
       title: 'Confirm the Haneda Royce shop opens before 08:50',
       detail:
-        'Fallback is Daimaru the evening before, which puts the chocolate out of a fridge for over a day.',
+        'The coach leaves at 05:00 and airside shops typically open 06:30 to 07:00, so it is tight but viable. Fallback is Daimaru the evening before, which puts the chocolate out of a fridge for over a day.',
     },
     {
-      id: 'lunch-free-days',
-      severity: 'note',
-      title: 'Lunch on 5 and 6 September may not be covered',
+      id: 'street-smoking',
+      severity: 'warning',
+      title: 'Street smoking is illegal in Tokyo',
       detail:
-        'The school covers lunch, but those are the two non-programme days. Roughly 3,000 yen the brief has not budgeted.',
+        'Designated areas only, with on-the-spot fines. Relevant because a carton is on the shopping list.',
+    },
+    {
+      id: 'weather',
+      severity: 'note',
+      title: 'September is warm and wet',
+      detail:
+        'Around 26C by day and 181 mm of rain across roughly 20 rain days. Every venue on the Nights tab carries an indoor or outdoor flag for that reason.',
     }
   );
 
@@ -800,8 +921,9 @@ export const preTripChecklist = [
   { id: 'pre-bank', label: 'Notify the bank of overseas card use' },
   {
     id: 'pre-baggage',
-    label: 'Check the return baggage allowance',
-    detail: 'The Cry Baby is 1.7 kg before the other three pedals.',
+    label: 'Leave room in the checked bag',
+    detail:
+      'One bag at 23 kg, one hand bag. The shopping is about 5.4 kg of it, the Cry Baby alone 1.7 kg.',
   },
   {
     id: 'pre-cash',

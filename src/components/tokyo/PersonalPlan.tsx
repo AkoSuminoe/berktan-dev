@@ -191,6 +191,9 @@ function PersonalDayCard({
 }) {
   const programme = tokyoDays.find((entry) => entry.id === day.dayId);
   const dinner = day.dinnerId ? findDinner(day.dinnerId) : undefined;
+  const covered = day.coveredDinnerId
+    ? findDinner(day.coveredDinnerId)
+    : undefined;
 
   return (
     <motion.div
@@ -240,6 +243,8 @@ function PersonalDayCard({
                       label={stop.label}
                       detail={[
                         shop && `${shop.name}, ${shop.opens} to ${shop.closes}`,
+                        shop?.walkMinutes &&
+                          `${shop.walkMinutes} min from the hotel`,
                         stop.detail,
                       ]
                         .filter(Boolean)
@@ -282,6 +287,7 @@ function PersonalDayCard({
                 label={`${dinner.kind}: ${dinner.name}`}
                 detail={[
                   dinner.opens && `${dinner.opens} to ${dinner.closes}`,
+                  dinner.walkMinutes && `${dinner.walkMinutes} min from the hotel`,
                   dinner.note,
                 ]
                   .filter(Boolean)
@@ -305,6 +311,20 @@ function PersonalDayCard({
                 </a>
               )}
             </>
+          ) : covered ? (
+            /* Eaten, not bought. No checkbox and no price: there is nothing to
+               decide and nothing to pay. */
+            <div className="mt-2 px-3">
+              <p className="text-sm font-medium text-ink">
+                {covered.kind}: {covered.name}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-ink-dim">
+                {day.eveningNote}
+              </p>
+              <p className="mt-2 inline-flex items-center rounded-full bg-glow/[0.12] px-2.5 py-1 text-[11px] font-medium text-glow shadow-[inset_0_0_0_1px_rgba(130,143,255,0.3)]">
+                School provided · {yen(covered.jpy)} saved
+              </p>
+            </div>
           ) : (
             <p className="mt-2 px-3 text-sm leading-relaxed text-ink-dim">
               {day.eveningNote ?? 'Nothing planned.'}
