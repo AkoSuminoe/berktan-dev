@@ -33,12 +33,19 @@ export default function ProjectCard({
       className={className}
     >
       <GlassCard className="h-full">
-        <article className="flex h-full flex-col">
+        <article className="group relative flex h-full flex-col">
           <div className="flex items-start justify-between gap-4">
-            <h3 className="text-lg font-semibold tracking-tight text-ink">
-              {repo.name}
+            <h3 className="text-lg font-semibold tracking-tight text-ink transition-colors duration-200 group-hover:text-glow">
+              <a
+                href={repo.html_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="before:absolute before:inset-0"
+              >
+                {repo.name}
+              </a>
             </h3>
-            <span className="flex shrink-0 items-center gap-2 text-ink-faint">
+            <span className="relative z-10 flex shrink-0 items-center gap-2 text-ink-faint">
               <a
                 href={repo.html_url}
                 target="_blank"
