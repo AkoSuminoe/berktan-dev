@@ -124,7 +124,7 @@ export default function Counter({
   value,
   fontSize = 100,
   padding = 0,
-  places = [...value.toString()].map((ch, i, a) => {
+  places = value.toString().split('').map((ch, i, a) => {
     if (ch === '.') {
       return '.';
     }
