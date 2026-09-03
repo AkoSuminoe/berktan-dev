@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import TokyoPlanner from '@/components/tokyo/TokyoPlanner';
+import TokyoPreloader from '@/components/tokyo/TokyoPreloader';
 import SakuraField from '@/components/tokyo/SakuraField';
 import Footer from '@/components/Footer';
 
@@ -17,8 +18,10 @@ export default function TokyoPage() {
           negative z-index here sits under the page content but still above the
           global ambient layers, which live at z-0 on the root. */}
       <SakuraField />
-      {/* The "Flying to Tokyo" veil now opens inside TokyoPlanner, as the
-          profile chooser, rather than as a separate screen before it. */}
+      {/* One line, centred, once per session. The veil is a fixed, non
+          scrolling layer built to hold exactly that much: putting a column of
+          cards inside it is what made the entry screen overflow a phone. */}
+      <TokyoPreloader />
       <TokyoPlanner />
       <Footer />
     </>

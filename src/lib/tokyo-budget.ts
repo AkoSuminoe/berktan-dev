@@ -16,17 +16,14 @@
 
 import { EXCHANGE_RATE } from '@/lib/tokyo-personal';
 import { isPlausibleRate } from '@/lib/tokyo-fx';
+import { BUDGET_STORAGE_KEY } from '@/lib/tokyo-storage';
 
-/**
- * Deliberately not the checklist's key. Different lifecycle and different
- * reset: clearing a checklist should never clear a spending record.
- *
- * Namespaced per profile, so two people on one phone do not share a wallet.
- * The unsuffixed key still exists from before profiles and is read once by
- * `migrateLegacy` in tokyo-profiles.ts.
+/*
+ * The key lives in tokyo-storage.ts with the other two, so there is exactly one
+ * definition of each. Re-exported here because the budget's own callers should
+ * not have to know which module owns the string.
  */
-export const budgetKeyFor = (profileId: string) =>
-  `tokyo-budget-v1:${profileId}`;
+export { BUDGET_STORAGE_KEY } from '@/lib/tokyo-storage';
 
 /**
  * Bumped only for a shape change that needs a migration.
@@ -309,12 +306,12 @@ export function parseBudget(value: unknown): BudgetState | null {
  * A null here means "show the planned figures read-only", never "the budget is
  * empty".
  */
-export function readBudget(profileId: string): {
+export function readBudget(): {
   state: BudgetState;
   persisted: boolean;
 } {
   try {
-    const raw = window.localStorage.getItem(budgetKeyFor(profileId));
+    const raw = window.localStorage.getItem(BUDGET_STORAGE_KEY);
     if (!raw) return { state: emptyBudget(), persisted: true };
     const parsed = parseBudget(JSON.parse(raw) as unknown);
     return { state: parsed ?? emptyBudget(), persisted: true };
@@ -324,12 +321,9 @@ export function readBudget(profileId: string): {
 }
 
 /** The only function that writes a budget key. Returns whether it stuck. */
-export function writeBudget(profileId: string, state: BudgetState): boolean {
+export function writeBudget(state: BudgetState): boolean {
   try {
-    window.localStorage.setItem(
-      budgetKeyFor(profileId),
-      JSON.stringify(state)
-    );
+    window.localStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(state));
     return true;
   } catch {
     // A full quota throws here even when the read succeeded.

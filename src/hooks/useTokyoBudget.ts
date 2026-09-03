@@ -48,7 +48,7 @@ export type BudgetActions = {
 
 let nonce = 0;
 
-export function useTokyoBudget(profileId: string | null) {
+export function useTokyoBudget() {
   /*
    * `ready` gates every budget-shaped thing on the page. localStorage cannot be
    * read during SSR, so the first client render has to match the server's
@@ -65,23 +65,13 @@ export function useTokyoBudget(profileId: string | null) {
    */
   const [lastRemoved, setLastRemoved] = useState<Expense | null>(null);
 
-  /*
-   * Re-runs when the profile changes, so switching loads that profile's
-   * record rather than leaving the previous one's numbers on screen. Nothing
-   * is read or written until a profile exists.
-   */
+  /* Runs once on mount, after the server render it has to match. */
   useEffect(() => {
-    if (!profileId) {
-      setReady(false);
-      setState(emptyBudget());
-      return;
-    }
-    const result = readBudget(profileId);
+    const result = readBudget();
     setState(result.state);
     setPersisted(result.persisted);
-    setLastRemoved(null);
     setReady(true);
-  }, [profileId]);
+  }, []);
 
   /*
    * Every mutation writes through `writeBudget` and records whether it stuck.
@@ -89,13 +79,8 @@ export function useTokyoBudget(profileId: string | null) {
    * screen is still right for this session, it just will not survive a reload.
    */
   const actions = useMemo<BudgetActions>(() => {
-    /*
-     * No profile means no store to write into, so the actions go inert rather
-     * than throwing. Nothing should reach them in that state anyway: the gate
-     * is up and the panels are unmounted.
-     */
     const persist = (next: BudgetState): BudgetState => {
-      if (profileId) setPersisted(writeBudget(profileId, next));
+      setPersisted(writeBudget(next));
       return next;
     };
 
@@ -208,7 +193,7 @@ export function useTokyoBudget(profileId: string | null) {
 
       clearPending: () => setPending(null),
     });
-  }, [profileId]);
+  }, []);
 
   return {
     ready,
