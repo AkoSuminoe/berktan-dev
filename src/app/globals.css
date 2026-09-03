@@ -361,6 +361,24 @@
 
 /*
  * ---------------------------------------------------------------------------
+ * Scrolling pill rows (/tokyo tabs)
+ * ---------------------------------------------------------------------------
+ * Five tabs do not fit across a 390px phone, so the row scrolls sideways. The
+ * scrollbar is hidden because the pills themselves are the affordance: a track
+ * under a 40px tall row reads as a rendering fault rather than as a control.
+ * Overflow still scrolls by touch, wheel and keyboard, so nothing is unreachable.
+ */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Sakura field (/tokyo only)
  * ---------------------------------------------------------------------------
  * Two soft bloom layers plus falling petals. Rendered by a Server Component,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   motion,
   AnimatePresence,
@@ -13,6 +13,7 @@ import GlassCard from '@/components/GlassCard';
 import ChecklistItem from '@/components/tokyo/ChecklistItem';
 import PersonalPlan from '@/components/tokyo/PersonalPlan';
 import NightsAndFood from '@/components/tokyo/NightsAndFood';
+import MoneyTab from '@/components/tokyo/MoneyTab';
 import RateSheet from '@/components/tokyo/RateSheet';
 import {
   CHECKLIST_STORAGE_KEY,
@@ -30,7 +31,7 @@ import { useTokyoBudget } from '@/hooks/useTokyoBudget';
 import { useTokyoFx } from '@/hooks/useTokyoFx';
 import { useTokyoSettings } from '@/hooks/useTokyoSettings';
 import { effectiveRate } from '@/lib/tokyo-settings';
-import { localDateKey } from '@/lib/tokyo-budget';
+import { localDateKey, totalSpent } from '@/lib/tokyo-budget';
 
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /* Strong ease-out. Anything entering, leaving, or answering a press uses it. */
@@ -80,22 +81,26 @@ function readSavedIds(): Set<string> {
   }
 }
 
-type Tab = 'wwc' | 'personal' | 'nights';
+type Tab = 'wwc' | 'personal' | 'nights' | 'money';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'wwc', label: 'Programme' },
   { id: 'personal', label: 'Personal' },
   { id: 'nights', label: 'Nights' },
+  { id: 'money', label: 'Money' },
 ];
 
 /**
  * Which list the progress strip is describing. Per-tab rather than a union:
- * one bar over all three would move when you switch tabs without ticking
+ * one bar over all of them would move when you switch tabs without ticking
  * anything, and would let one list push another's percentage past 100.
+ *
+ * Partial on purpose. Money has no checklist, so it takes its figure from
+ * spending instead, and a tab with neither gets no bar at all rather than a
+ * bar that describes nothing.
  */
-const PROGRESS_SCOPE: Record<
-  Tab,
-  { ids: string[]; total: number; label: string }
+const PROGRESS_SCOPE: Partial<
+  Record<Tab, { ids: string[]; total: number; label: string }>
 > = {
   wwc: { ids: WWC_ITEM_IDS, total: totalItemCount, label: 'programme' },
   personal: {
@@ -199,6 +204,19 @@ function DayCard({
 export default function TokyoPlanner() {
   const reduce = useReducedMotion();
   const [tab, setTab] = useState<Tab>('wwc');
+
+  /*
+   * Keeps the chosen pill on screen. Tapping the last one in a scrolled row
+   * otherwise leaves it half cut off, which reads as an unfinished tap.
+   */
+  const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
+  useEffect(() => {
+    tabRefs.current[tab]?.scrollIntoView({
+      behavior: reduce ? 'auto' : 'smooth',
+      inline: 'nearest',
+      block: 'nearest',
+    });
+  }, [tab, reduce]);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
 
   /*
@@ -260,12 +278,38 @@ export default function TokyoPlanner() {
    */
   const scope = PROGRESS_SCOPE[tab];
   const completed = useMemo(
-    () => scope.ids.filter((id) => checkedIds.has(id)).length,
+    () => (scope ? scope.ids.filter((id) => checkedIds.has(id)).length : 0),
     [scope, checkedIds]
   );
-  const total = scope.total;
 
-  const pct = Math.min(100, Math.round((completed / Math.max(total, 1)) * 100));
+  /*
+   * What the strip reports on this tab. Money measures spending against the
+   * budget, which is a genuine progress figure and the one thing worth seeing
+   * from every scroll position on that tab. Before a budget exists there is
+   * nothing to be a percentage of, so the bar goes rather than reading 0%.
+   */
+  const budget = budgetBinding.state;
+  const spentPct =
+    budget.totalJpy !== null && budget.totalJpy > 0
+      ? Math.min(100, Math.round((totalSpent(budget) / budget.totalJpy) * 100))
+      : null;
+
+  const meter: { pct: number; label: string } | null =
+    tab === 'money'
+      ? budgetBinding.ready && spentPct !== null
+        ? { pct: spentPct, label: 'of budget' }
+        : null
+      : scope
+        ? {
+            pct: Math.min(
+              100,
+              Math.round((completed / Math.max(scope.total, 1)) * 100)
+            ),
+            label: scope.label,
+          }
+        : null;
+
+  const pct = meter?.pct ?? 0;
 
   /*
    * The fill is a full-width gradient revealed by clip-path, never an animated
@@ -300,31 +344,93 @@ export default function TokyoPlanner() {
   // Lands 100ms into the veil's dissolve, so the two overlap.
   const base = reduce || curtainPlayed ? 0.1 : 1.75;
 
+  /* A helper rather than a ternary chain: four arms nested inline stopped
+     being readable at three. */
+  function renderPanel() {
+    switch (tab) {
+      case 'wwc':
+        return (
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {tokyoDays.map((day, index) => (
+              <DayCard
+                key={day.id}
+                day={day}
+                index={index}
+                checkedIds={checkedIds}
+                onToggle={onToggle}
+              />
+            ))}
+          </div>
+        );
+      case 'personal':
+        return (
+          <PersonalPlan
+            checkedIds={checkedIds}
+            onToggle={onToggle}
+            budgetBinding={budgetBinding}
+            rate={effective}
+            atmFeeJpy={settingsBinding.settings.atmFeeJpy}
+          />
+        );
+      case 'nights':
+        return (
+          <NightsAndFood
+            checkedIds={checkedIds}
+            onToggle={onToggle}
+            budgetBinding={budgetBinding}
+            rate={effective}
+            atmFeeJpy={settingsBinding.settings.atmFeeJpy}
+          />
+        );
+      case 'money':
+        return (
+          <MoneyTab
+            budgetBinding={budgetBinding}
+            settingsBinding={settingsBinding}
+            checkedIds={checkedIds}
+            rate={effective}
+            quote={fx.quote}
+          />
+        );
+    }
+  }
+
   return (
     <>
       {/* Sticky progress strip: torii red to cyber blue, Tokyo-scoped accent.
           Floating chrome, so it is the one surface here allowed a blur. */}
       <div className="material sticky top-0 z-30">
         <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3 sm:px-6">
-          <div
-            role="progressbar"
-            aria-valuenow={pct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label="Itinerary progress"
-            className="h-[3px] flex-1 rounded-full bg-white/[0.07]"
-          >
-            <motion.div
-              className="h-full w-full rounded-full"
-              style={{
-                clipPath,
-                background: 'linear-gradient(90deg, #ff3b30 0%, #57c1ff 100%)',
-              }}
-            />
-          </div>
-          <p className="shrink-0 font-mono text-xs text-ink-dim">
-            {pct}% {scope.label}
-          </p>
+          {meter ? (
+            <>
+              <div
+                role="progressbar"
+                aria-valuenow={meter.pct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`Progress, ${meter.label}`}
+                className="h-[3px] flex-1 rounded-full bg-white/[0.07]"
+              >
+                <motion.div
+                  className="h-full w-full rounded-full"
+                  style={{
+                    clipPath,
+                    background:
+                      'linear-gradient(90deg, #ff3b30 0%, #57c1ff 100%)',
+                  }}
+                />
+              </div>
+              <p className="shrink-0 font-mono text-xs text-ink-dim">
+                {meter.pct}% {meter.label}
+              </p>
+            </>
+          ) : (
+            /* Nothing to measure. The strip keeps its height and its rate
+               button rather than collapsing under the header. */
+            <p className="flex-1 font-mono text-xs text-ink-faint">
+              {tab === 'money' ? 'No budget set' : ''}
+            </p>
+          )}
 
           {/* Reachable from every tab: the ladder is a shop tool. */}
           <RateSheet quote={fx.quote} state={fx.state} effective={effective} />
@@ -364,17 +470,26 @@ export default function TokyoPlanner() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: base + 0.3, ease }}
-          className="mt-10 inline-flex items-center gap-1 rounded-full bg-white/[0.04] p-1 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.09),inset_0_0_0_1px_rgba(255,255,255,0.05)]"
-          role="tablist"
-          aria-label="Itinerary plans"
+          /* The row scrolls sideways rather than wrapping: five pills do not
+             fit across a 390px phone, and a wrapped second line would move the
+             whole page down by 40px on the narrowest screens only. */
+          className="no-scrollbar -mx-4 mt-10 flex overflow-x-auto px-4 sm:mx-0 sm:px-0"
         >
+          <div
+            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/[0.04] p-1 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.09),inset_0_0_0_1px_rgba(255,255,255,0.05)]"
+            role="tablist"
+            aria-label="Itinerary plans"
+          >
           {TABS.map(({ id, label }) => (
             <button
               key={id}
               role="tab"
+              ref={(node) => {
+                tabRefs.current[id] = node;
+              }}
               aria-selected={tab === id}
               onClick={() => setTab(id)}
-              className={`relative rounded-full px-4 py-1.5 text-sm font-medium transition-[color,transform] duration-200 ease-out-strong active:scale-[0.97] active:duration-100 motion-reduce:transform-none ${
+              className={`relative shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-[color,transform] duration-200 ease-out-strong active:scale-[0.97] active:duration-100 motion-reduce:transform-none ${
                 tab === id ? 'text-ink' : 'text-ink-faint hover:text-ink-dim'
               }`}
             >
@@ -392,6 +507,7 @@ export default function TokyoPlanner() {
               <span className="relative">{label}</span>
             </button>
           ))}
+          </div>
         </motion.div>
 
         {/* Panels */}
@@ -412,36 +528,7 @@ export default function TokyoPlanner() {
               }}
               transition={{ duration: 0.36, ease: easeOut }}
             >
-              {tab === 'wwc' ? (
-                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                  {tokyoDays.map((day, index) => (
-                    <DayCard
-                      key={day.id}
-                      day={day}
-                      index={index}
-                      checkedIds={checkedIds}
-                      onToggle={onToggle}
-                    />
-                  ))}
-                </div>
-              ) : tab === 'personal' ? (
-                <PersonalPlan
-                  checkedIds={checkedIds}
-                  onToggle={onToggle}
-                  budgetBinding={budgetBinding}
-                  rate={effective}
-                  settingsBinding={settingsBinding}
-                  quote={fx.quote}
-                />
-              ) : (
-                <NightsAndFood
-                  checkedIds={checkedIds}
-                  onToggle={onToggle}
-                  budgetBinding={budgetBinding}
-                  rate={effective}
-                  atmFeeJpy={settingsBinding.settings.atmFeeJpy}
-                />
-              )}
+              {renderPanel()}
             </motion.div>
           </AnimatePresence>
         </div>

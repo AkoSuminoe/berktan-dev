@@ -7,8 +7,9 @@ import GlassCard from '@/components/GlassCard';
 import ChecklistItem from '@/components/tokyo/ChecklistItem';
 import ViolationsPanel from '@/components/tokyo/ViolationsPanel';
 import QuickAddExpense from '@/components/tokyo/QuickAddExpense';
+import SectionNav from '@/components/tokyo/SectionNav';
 import { yen, mapsSearchUrl } from '@/components/tokyo/format';
-import type { BudgetBinding } from '@/components/tokyo/PersonalPlan';
+import type { BudgetBinding } from '@/components/tokyo/types';
 import { tokyoDays } from '@/lib/tokyo-itinerary';
 import type { Weekday } from '@/lib/tokyo-personal';
 import {
@@ -32,6 +33,14 @@ import {
 } from '@/lib/tokyo-nights';
 
 const easeOut: [number, number, number, number] = [0.23, 1, 0.32, 1];
+
+const SECTIONS = [
+  { id: 'nights-evenings', label: 'The eight evenings' },
+  { id: 'nights-venues', label: 'Every venue' },
+  { id: 'nights-konbini', label: 'Konbini' },
+  { id: 'nights-food', label: 'Food' },
+  { id: 'nights-checks', label: 'Rule checks' },
+];
 
 const SHELTER_LABEL = {
   indoor: 'Indoor',
@@ -465,6 +474,10 @@ export default function NightsAndFood({
         </p>
       </GlassCard>
 
+      <SectionNav sections={SECTIONS} />
+
+      {/* Ticking a night prefills this, so it stays on the tab the tick is on.
+          What it feeds lives under Money. */}
       {ready && (
         <QuickAddExpense
           pending={pending}
@@ -475,7 +488,10 @@ export default function NightsAndFood({
         />
       )}
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div
+        id="nights-evenings"
+        className="grid scroll-mt-24 grid-cols-1 gap-5 lg:grid-cols-2"
+      >
         {eveningPlans.map((evening, index) => (
           <EveningCard
             key={evening.dayId}
@@ -487,9 +503,12 @@ export default function NightsAndFood({
         ))}
       </div>
 
-      <VenueList />
+      <div id="nights-venues" className="scroll-mt-24">
+        <VenueList />
+      </div>
 
       {/* Konbini: the two that matter, because one of them has the ATM */}
+      <div id="nights-konbini" className="scroll-mt-24">
       <GlassCard coreClassName="p-6 sm:p-7">
         <h3 className="text-xs font-medium uppercase tracking-[0.18em] text-ink-faint">
           Konbini near the hotel
@@ -527,8 +546,10 @@ export default function NightsAndFood({
           tax-free, and tobacco duty is not refundable anywhere.
         </p>
       </GlassCard>
+      </div>
 
       {/* Ticked for interest. These never reach the spend total. */}
+      <div id="nights-food" className="scroll-mt-24 space-y-5">
       <GlassCard coreClassName="p-6 sm:p-7">
         <h3 className="text-xs font-medium uppercase tracking-[0.18em] text-ink-faint">
           Konbini must-tries
@@ -565,11 +586,14 @@ export default function NightsAndFood({
           Also worth eating, with no fixed venue: {alsoWorthEating}
         </p>
       </GlassCard>
+      </div>
 
+      <div id="nights-checks" className="scroll-mt-24">
       <ViolationsPanel
         violations={violations}
         intro="Checked against the closing days, the opening hours and Friday's coach. The four unassigned venues are not checked, because they are not on a night yet."
       />
+      </div>
 
       {unassignedVenues.length > 0 && (
         <p className="px-1 text-xs leading-relaxed text-ink-faint">

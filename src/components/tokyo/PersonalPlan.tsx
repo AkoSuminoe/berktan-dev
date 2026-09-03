@@ -6,8 +6,8 @@ import { ArrowUpRight } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
 import ChecklistItem from '@/components/tokyo/ChecklistItem';
 import ViolationsPanel from '@/components/tokyo/ViolationsPanel';
-import BudgetTracker from '@/components/tokyo/BudgetTracker';
 import QuickAddExpense from '@/components/tokyo/QuickAddExpense';
+import SectionNav from '@/components/tokyo/SectionNav';
 import { yen, mapsUrl } from '@/components/tokyo/format';
 import { tokyoDays } from '@/lib/tokyo-itinerary';
 import {
@@ -21,16 +21,17 @@ import {
   CATEGORY_LABELS,
   type ShoppingCategory,
 } from '@/lib/tokyo-personal';
-import CardSettings from '@/components/tokyo/CardSettings';
 import type { ExpenseCategory } from '@/lib/tokyo-budget';
-import type { FxQuote } from '@/lib/tokyo-fx';
-import type { useTokyoBudget } from '@/hooks/useTokyoBudget';
-import type { useTokyoSettings } from '@/hooks/useTokyoSettings';
+import type { BudgetBinding } from '@/components/tokyo/types';
 
 const easeOut: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
-export type BudgetBinding = ReturnType<typeof useTokyoBudget>;
-export type SettingsBinding = ReturnType<typeof useTokyoSettings>;
+const SECTIONS = [
+  { id: 'personal-days', label: 'The eight days' },
+  { id: 'personal-shopping', label: 'Shopping list' },
+  { id: 'personal-checks', label: 'Rule checks' },
+  { id: 'personal-pretrip', label: 'Before the flight' },
+];
 
 /*
  * The shopping categories line up with three of the expense categories by
@@ -218,18 +219,16 @@ export default function PersonalPlan({
   onToggle,
   budgetBinding,
   rate,
-  settingsBinding,
-  quote,
+  atmFeeJpy,
 }: {
   checkedIds: Set<string>;
   onToggle: (id: string) => void;
   budgetBinding: BudgetBinding;
   rate: number;
-  settingsBinding: SettingsBinding;
-  quote: FxQuote;
+  atmFeeJpy: number;
 }) {
   const violations = useMemo(() => findViolations(), []);
-  const { ready, persisted, state, pending, actions, canUndo } = budgetBinding;
+  const { ready, state, pending, actions } = budgetBinding;
 
   /*
    * Ticking a planned purchase does two things: it marks the item, and it opens
@@ -284,46 +283,27 @@ export default function PersonalPlan({
     return groups;
   }, []);
 
-  /* Holds the layout on the first paint, before localStorage has been read. */
-  if (!ready) {
-    return (
-      <div className="space-y-5">
-        <GlassCard coreClassName="p-6 sm:p-7">
-          <div className="h-[7.5rem] animate-pulse rounded-xl bg-white/[0.03] motion-reduce:animate-none" />
-        </GlassCard>
-        <GlassCard coreClassName="p-6 sm:p-7">
-          <div className="h-[11rem] animate-pulse rounded-xl bg-white/[0.03] motion-reduce:animate-none" />
-        </GlassCard>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-5">
-      <BudgetTracker
-        state={state}
-        actions={actions}
-        persisted={persisted}
-        canUndo={canUndo}
-        checkedIds={checkedIds}
-        rate={rate}
-      />
+      <SectionNav sections={SECTIONS} />
 
-      <QuickAddExpense
-        pending={pending}
-        actions={actions}
-        disabled={state.totalJpy === null}
-        rate={rate}
-        atmFeeJpy={settingsBinding.settings.atmFeeJpy}
-      />
+      {/* The entry row stays on this tab. Ticking a planned purchase opens it
+          with the suggested price, and a prefill that lands on a tab you are
+          not looking at is broken. The totals it feeds live under Money. */}
+      {ready && (
+        <QuickAddExpense
+          pending={pending}
+          actions={actions}
+          disabled={state.totalJpy === null}
+          rate={rate}
+          atmFeeJpy={atmFeeJpy}
+        />
+      )}
 
-      <CardSettings
-        settings={settingsBinding.settings}
-        update={settingsBinding.update}
-        quote={quote}
-      />
-
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div
+        id="personal-days"
+        className="grid scroll-mt-24 grid-cols-1 gap-5 lg:grid-cols-2"
+      >
         {personalDays.map((day, index) => (
           <PersonalDayCard
             key={day.dayId}
@@ -337,6 +317,7 @@ export default function PersonalPlan({
       </div>
 
       {/* The list itself, grouped, for ticking things off in a shop */}
+      <div id="personal-shopping" className="scroll-mt-24">
       <GlassCard coreClassName="p-6 sm:p-7">
         <h3 className="text-xs font-medium uppercase tracking-[0.18em] text-ink-faint">
           Shopping list
@@ -399,12 +380,16 @@ export default function PersonalPlan({
           </div>
         </div>
       </GlassCard>
+      </div>
 
+      <div id="personal-checks" className="scroll-mt-24">
       <ViolationsPanel
         violations={violations}
         intro="Checked against the shop hours, the closing days and the sequencing rules. Nothing here is hidden from the plan because it is inconvenient."
       />
+      </div>
 
+      <div id="personal-pretrip" className="scroll-mt-24">
       <GlassCard coreClassName="p-6 sm:p-7">
         <h3 className="text-xs font-medium uppercase tracking-[0.18em] text-ink-faint">
           Before the flight
@@ -422,6 +407,7 @@ export default function PersonalPlan({
           ))}
         </div>
       </GlassCard>
+      </div>
     </div>
   );
 }
