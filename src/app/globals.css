@@ -27,11 +27,15 @@
     color-scheme: dark;
     scroll-behavior: smooth;
     scroll-padding-top: 2rem;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
   }
 
   body {
     @apply bg-abyss text-ink antialiased;
     overflow-x: hidden;
+    overscroll-behavior-x: none;
+    touch-action: pan-y;
     /* Raycast-signature Inter rendering: ss03 alternate g, ligatures, kerning */
     font-feature-settings: 'calt', 'kern', 'liga', 'ss03';
     /* Micro dot texture: barely-there tooth so the void never reads flat */

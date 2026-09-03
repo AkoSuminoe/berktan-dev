@@ -86,7 +86,7 @@ export default function MobileContactFab() {
               ? { duration: 0.24, ease: [0.23, 1, 0.32, 1] }
               : { type: 'spring', stiffness: 260, damping: 24 }
           }
-          className="fixed bottom-24 right-4 z-[45] sm:hidden"
+          className="fixed bottom-24 right-4 z-20 sm:hidden"
         >
           <Link
             href={`${origin}/#contact`}

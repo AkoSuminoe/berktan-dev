@@ -1,13 +1,14 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useCallback, useMemo, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
 import ChecklistItem from '@/components/tokyo/ChecklistItem';
 import ViolationsPanel from '@/components/tokyo/ViolationsPanel';
 import QuickAddExpense from '@/components/tokyo/QuickAddExpense';
 import SectionNav from '@/components/tokyo/SectionNav';
+import OptionWheel from '@/components/ui/OptionWheel';
 import { yen, mapsUrl } from '@/components/tokyo/format';
 import { tokyoDays } from '@/lib/tokyo-itinerary';
 import {
@@ -229,6 +230,8 @@ export default function PersonalPlan({
 }) {
   const violations = useMemo(() => findViolations(), []);
   const { ready, state, pending, actions } = budgetBinding;
+  const reduce = useReducedMotion();
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
 
   /*
    * Ticking a planned purchase does two things: it marks the item, and it opens
@@ -300,20 +303,45 @@ export default function PersonalPlan({
         />
       )}
 
-      <div
-        id="personal-days"
-        className="grid scroll-mt-24 grid-cols-1 gap-5 lg:grid-cols-2"
-      >
-        {personalDays.map((day, index) => (
-          <PersonalDayCard
-            key={day.dayId}
-            day={day}
-            index={index}
-            checkedIds={checkedIds}
-            onToggle={onToggle}
-            onToggleDinner={onToggleDinner}
-          />
-        ))}
+      <div id="personal-days" className="scroll-mt-24">
+        {!reduce ? (
+          <div className="h-48 w-full mb-6">
+            <OptionWheel
+              items={personalDays.map(day => `${day.weekday} ${day.date}`)}
+              defaultSelected={selectedDayIndex}
+              onChange={setSelectedDayIndex}
+              blur={0}
+              fontSize={1.5}
+            />
+          </div>
+        ) : (
+          <div className="no-scrollbar -mx-4 mb-6 flex overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            <div className="inline-flex shrink-0 items-center gap-2">
+              {personalDays.map((day, index) => (
+                <button
+                  key={day.dayId}
+                  onClick={() => setSelectedDayIndex(index)}
+                  className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    selectedDayIndex === index
+                      ? 'bg-white/[0.09] text-ink'
+                      : 'bg-white/[0.03] text-ink-faint hover:text-ink-dim'
+                  }`}
+                >
+                  {day.weekday} {day.date}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <PersonalDayCard
+          key={personalDays[selectedDayIndex].dayId}
+          day={personalDays[selectedDayIndex]}
+          index={0}
+          checkedIds={checkedIds}
+          onToggle={onToggle}
+          onToggleDinner={onToggleDinner}
+        />
       </div>
 
       {/* The list itself, grouped, for ticking things off in a shop */}

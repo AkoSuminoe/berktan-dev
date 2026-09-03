@@ -9,6 +9,7 @@ import SpendDonut from '@/components/tokyo/SpendDonut';
 import CategoryBars from '@/components/tokyo/CategoryBars';
 import ExpenseList from '@/components/tokyo/ExpenseList';
 import SectionNav from '@/components/tokyo/SectionNav';
+import Counter from '@/components/ui/Counter';
 import { yen } from '@/components/tokyo/format';
 import {
   expensesForPeriod,
@@ -46,6 +47,38 @@ const SECTIONS = [
  * prefills it and a prefill that opens on a tab you are not looking at is
  * broken. What moved here is the reading, not the recording.
  */
+
+function RemainingCounter({ left, className, gradientFrom = '#0b0b0f' }: { left: number; className?: string; gradientFrom?: string }) {
+  const isNegative = left < 0;
+  const abs = Math.abs(left);
+  const m = Math.floor(abs / 1000000);
+  const k = Math.floor((abs % 1000000) / 1000);
+  const u = abs % 1000;
+
+  return (
+    <span className={`inline-flex items-baseline font-mono ${className ?? ''}`}>
+      {isNegative && '-'}
+      ¥
+      {m > 0 && (
+        <>
+          <Counter value={m} fontSize={12} padding={0} gap={1} gradientFrom={gradientFrom} />
+          <span className="mb-[0.5px]">,</span>
+        </>
+      )}
+      {(m > 0 || k > 0) && (
+        <>
+          <Counter value={k} places={m > 0 ? [100, 10, 1] : undefined} fontSize={12} padding={0} gap={1} gradientFrom={gradientFrom} />
+          <span className="mb-[0.5px]">,</span>
+        </>
+      )}
+      <Counter value={u} places={(m > 0 || k > 0) ? [100, 10, 1] : undefined} fontSize={12} padding={0} gap={1} gradientFrom={gradientFrom} />
+      <span className="ml-1 text-xs text-ink-faint font-sans">
+        {isNegative ? 'over' : 'left'}
+      </span>
+    </span>
+  );
+}
+
 export default function MoneyTab({
   budgetBinding,
   settingsBinding,
@@ -108,9 +141,7 @@ export default function MoneyTab({
   const centreLabel =
     left === null
       ? null
-      : left < 0
-        ? `${yen(-left)} over`
-        : `${yen(left)} left`;
+      : <RemainingCounter left={left} className="text-ink-faint" />;
 
   /* Said in words under the switcher, because "so far" and "whole trip" show
      the same spending and differ only in what it is being measured against. */
@@ -197,14 +228,14 @@ export default function MoneyTab({
                   </span>
                 )}
               </p>
-              {allowance !== null && (
-                <p
-                  className={`font-mono text-xs ${
-                    left !== null && left < 0 ? 'text-red-300' : 'text-glow'
+              {allowance !== null && left !== null && (
+                <div
+                  className={`flex items-center text-xs ${
+                    left < 0 ? 'text-red-300' : 'text-glow'
                   }`}
                 >
-                  {centreLabel}
-                </p>
+                  <RemainingCounter left={left} className={left < 0 ? 'text-red-300' : 'text-glow'} gradientFrom="#0e0e13" />
+                </div>
               )}
             </div>
             <p className="mt-2 text-xs leading-relaxed text-ink-faint">

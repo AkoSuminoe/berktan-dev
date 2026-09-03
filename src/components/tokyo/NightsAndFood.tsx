@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowUpRight, Banknote, CloudRain, Moon } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
 import ChecklistItem from '@/components/tokyo/ChecklistItem';
 import ViolationsPanel from '@/components/tokyo/ViolationsPanel';
 import QuickAddExpense from '@/components/tokyo/QuickAddExpense';
 import SectionNav from '@/components/tokyo/SectionNav';
+import OptionWheel from '@/components/ui/OptionWheel';
 import { yen, mapsSearchUrl } from '@/components/tokyo/format';
 import type { BudgetBinding } from '@/components/tokyo/types';
 import { tokyoDays } from '@/lib/tokyo-itinerary';
@@ -425,6 +426,8 @@ export default function NightsAndFood({
 }) {
   const violations = useMemo(() => findNightViolations(), []);
   const { ready, state, pending, actions } = budgetBinding;
+  const reduce = useReducedMotion();
+  const [selectedEveningIndex, setSelectedEveningIndex] = useState(0);
 
   /*
    * A night out costs money, so ticking one prefills the quick-add. The amount
@@ -488,19 +491,44 @@ export default function NightsAndFood({
         />
       )}
 
-      <div
-        id="nights-evenings"
-        className="grid scroll-mt-24 grid-cols-1 gap-5 lg:grid-cols-2"
-      >
-        {eveningPlans.map((evening, index) => (
-          <EveningCard
-            key={evening.dayId}
-            evening={evening}
-            index={index}
-            checkedIds={checkedIds}
-            onToggle={onToggleNight}
-          />
-        ))}
+      <div id="nights-evenings" className="scroll-mt-24">
+        {!reduce ? (
+          <div className="h-48 w-full mb-6">
+            <OptionWheel
+              items={eveningPlans.map(evening => `${evening.weekday} ${evening.date}`)}
+              defaultSelected={selectedEveningIndex}
+              onChange={setSelectedEveningIndex}
+              blur={0}
+              fontSize={1.5}
+            />
+          </div>
+        ) : (
+          <div className="no-scrollbar -mx-4 mb-6 flex overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            <div className="inline-flex shrink-0 items-center gap-2">
+              {eveningPlans.map((evening, index) => (
+                <button
+                  key={evening.dayId}
+                  onClick={() => setSelectedEveningIndex(index)}
+                  className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    selectedEveningIndex === index
+                      ? 'bg-white/[0.09] text-ink'
+                      : 'bg-white/[0.03] text-ink-faint hover:text-ink-dim'
+                  }`}
+                >
+                  {evening.weekday} {evening.date}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <EveningCard
+          key={eveningPlans[selectedEveningIndex].dayId}
+          evening={eveningPlans[selectedEveningIndex]}
+          index={0}
+          checkedIds={checkedIds}
+          onToggle={onToggleNight}
+        />
       </div>
 
       <div id="nights-venues" className="scroll-mt-24">

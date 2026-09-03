@@ -50,7 +50,7 @@ export default function SpendDonut({
   totalsJpy: Record<ExpenseCategory, number>;
   totalsGbp: Record<ExpenseCategory, number>;
   /** Rendered under the centre total. Already formatted, already labelled. */
-  remainingLabel: string | null;
+  remainingLabel: React.ReactNode | null;
   activeCategory: ExpenseCategory | null;
   onFilter: (category: ExpenseCategory | null) => void;
   onAdd: (category: ExpenseCategory) => void;
@@ -178,9 +178,9 @@ export default function SpendDonut({
             {yen(total)}
           </p>
           {remainingLabel && (
-            <p className="mt-1 max-w-[7.5rem] text-center text-[11px] leading-tight text-ink-faint">
+            <div className="mt-1 flex max-w-[7.5rem] justify-center text-center text-[11px] leading-tight text-ink-faint">
               {remainingLabel}
-            </p>
+            </div>
           )}
         </div>
       </div>

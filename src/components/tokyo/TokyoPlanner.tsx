@@ -441,7 +441,7 @@ export default function TokyoPlanner() {
         </div>
       </div>
 
-      <section className="mx-auto max-w-5xl px-4 pb-28 pt-10 sm:px-6">
+      <section className="mx-auto max-w-5xl px-4 pb-40 pt-10 sm:px-6">
         {/* Header */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -477,10 +477,10 @@ export default function TokyoPlanner() {
           /* The row scrolls sideways rather than wrapping: five pills do not
              fit across a 390px phone, and a wrapped second line would move the
              whole page down by 40px on the narrowest screens only. */
-          className="no-scrollbar -mx-4 mt-10 flex overflow-x-auto px-4 sm:mx-0 sm:px-0"
+          className="no-scrollbar -mx-4 mt-10 flex overflow-x-auto overscroll-x-contain touch-pan-x px-4 sm:mx-0 sm:px-0"
         >
           <div
-            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/[0.04] p-1 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.09),inset_0_0_0_1px_rgba(255,255,255,0.05)]"
+            className="inline-flex shrink-0 items-center gap-1"
             role="tablist"
             aria-label="Itinerary plans"
           >
@@ -493,7 +493,7 @@ export default function TokyoPlanner() {
               }}
               aria-selected={tab === id}
               onClick={() => setTab(id)}
-              className={`relative shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-[color,transform] duration-200 ease-out-strong active:scale-[0.97] active:duration-100 motion-reduce:transform-none ${
+              className={`relative shrink-0 rounded-full px-4 max-[400px]:px-[10px] py-1.5 text-sm max-[400px]:text-[13px] font-medium transition-[color,transform] duration-200 ease-out-strong active:scale-[0.97] active:duration-100 motion-reduce:transform-none ${
                 tab === id ? 'text-ink' : 'text-ink-faint hover:text-ink-dim'
               }`}
             >
