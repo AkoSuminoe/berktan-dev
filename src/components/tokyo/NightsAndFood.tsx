@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUpRight, Banknote, CloudRain, Moon } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
 import ChecklistItem from '@/components/tokyo/ChecklistItem';
@@ -425,6 +425,7 @@ export default function NightsAndFood({
 }) {
   const violations = useMemo(() => findNightViolations(), []);
   const { ready, state, pending, actions } = budgetBinding;
+  const [selectedEveningId, setSelectedEveningId] = useState(eveningPlans[0].dayId);
 
   /*
    * A night out costs money, so ticking one prefills the quick-add. The amount
@@ -488,19 +489,55 @@ export default function NightsAndFood({
         />
       )}
 
-      <div
-        id="nights-evenings"
-        className="grid scroll-mt-24 grid-cols-1 gap-5 lg:grid-cols-2"
-      >
-        {eveningPlans.map((evening, index) => (
-          <EveningCard
-            key={evening.dayId}
-            evening={evening}
-            index={index}
-            checkedIds={checkedIds}
-            onToggle={onToggleNight}
-          />
-        ))}
+      <div id="nights-evenings" className="scroll-mt-24">
+        <div className="no-scrollbar -mx-4 mb-6 flex overflow-x-auto overscroll-x-contain touch-pan-x px-4 sm:mx-0 sm:px-0">
+          <div className="inline-flex shrink-0 items-center gap-1" role="tablist" aria-label="Nights">
+            {eveningPlans.map((evening, index) => {
+              const isActive = selectedEveningId === evening.dayId;
+              return (
+                <button
+                  key={evening.dayId}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setSelectedEveningId(evening.dayId)}
+                  className={`relative shrink-0 rounded-full px-4 max-[400px]:px-[10px] py-1.5 text-sm max-[400px]:text-[13px] font-medium transition-[color,transform] duration-200 ease-out-strong active:scale-[0.97] active:duration-100 motion-reduce:transform-none ${
+                    isActive ? 'text-ink' : 'text-ink-faint hover:text-ink-dim'
+                  }`}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="nights-day-tab-pill"
+                      transition={{ type: 'spring', duration: 0.42, bounce: 0.14 }}
+                      className="absolute inset-0 rounded-full bg-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]"
+                    />
+                  )}
+                  <span className="relative">Night {index + 1}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={selectedEveningId}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{
+              opacity: 0,
+              y: -8,
+              transition: { duration: 0.18, ease: easeOut },
+            }}
+            transition={{ duration: 0.36, ease: easeOut }}
+          >
+            <EveningCard
+              evening={eveningPlans.find((e) => e.dayId === selectedEveningId)!}
+              index={0}
+              checkedIds={checkedIds}
+              onToggle={onToggleNight}
+            />
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <div id="nights-venues" className="scroll-mt-24">

@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useCallback, useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
 import ChecklistItem from '@/components/tokyo/ChecklistItem';
@@ -229,6 +229,7 @@ export default function PersonalPlan({
 }) {
   const violations = useMemo(() => findViolations(), []);
   const { ready, state, pending, actions } = budgetBinding;
+  const [selectedDayId, setSelectedDayId] = useState(personalDays[0].dayId);
 
   /*
    * Ticking a planned purchase does two things: it marks the item, and it opens
@@ -300,20 +301,56 @@ export default function PersonalPlan({
         />
       )}
 
-      <div
-        id="personal-days"
-        className="grid scroll-mt-24 grid-cols-1 gap-5 lg:grid-cols-2"
-      >
-        {personalDays.map((day, index) => (
-          <PersonalDayCard
-            key={day.dayId}
-            day={day}
-            index={index}
-            checkedIds={checkedIds}
-            onToggle={onToggle}
-            onToggleDinner={onToggleDinner}
-          />
-        ))}
+      <div id="personal-days" className="scroll-mt-24">
+        <div className="no-scrollbar -mx-4 mb-6 flex overflow-x-auto overscroll-x-contain touch-pan-x px-4 sm:mx-0 sm:px-0">
+          <div className="inline-flex shrink-0 items-center gap-1" role="tablist" aria-label="Personal days">
+            {personalDays.map((day, index) => {
+              const isActive = selectedDayId === day.dayId;
+              return (
+                <button
+                  key={day.dayId}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setSelectedDayId(day.dayId)}
+                  className={`relative shrink-0 rounded-full px-4 max-[400px]:px-[10px] py-1.5 text-sm max-[400px]:text-[13px] font-medium transition-[color,transform] duration-200 ease-out-strong active:scale-[0.97] active:duration-100 motion-reduce:transform-none ${
+                    isActive ? 'text-ink' : 'text-ink-faint hover:text-ink-dim'
+                  }`}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="personal-day-tab-pill"
+                      transition={{ type: 'spring', duration: 0.42, bounce: 0.14 }}
+                      className="absolute inset-0 rounded-full bg-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]"
+                    />
+                  )}
+                  <span className="relative">Day {index + 1}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={selectedDayId}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{
+              opacity: 0,
+              y: -8,
+              transition: { duration: 0.18, ease: easeOut },
+            }}
+            transition={{ duration: 0.36, ease: easeOut }}
+          >
+            <PersonalDayCard
+              day={personalDays.find((d) => d.dayId === selectedDayId)!}
+              index={0}
+              checkedIds={checkedIds}
+              onToggle={onToggle}
+              onToggleDinner={onToggleDinner}
+            />
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* The list itself, grouped, for ticking things off in a shop */}
