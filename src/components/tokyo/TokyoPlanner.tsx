@@ -14,6 +14,7 @@ import ChecklistItem from '@/components/tokyo/ChecklistItem';
 import PersonalPlan from '@/components/tokyo/PersonalPlan';
 import NightsAndFood from '@/components/tokyo/NightsAndFood';
 import MoneyTab from '@/components/tokyo/MoneyTab';
+import CultureNotes from '@/components/tokyo/CultureNotes';
 import RateSheet from '@/components/tokyo/RateSheet';
 import {
   CHECKLIST_STORAGE_KEY,
@@ -81,13 +82,14 @@ function readSavedIds(): Set<string> {
   }
 }
 
-type Tab = 'wwc' | 'personal' | 'nights' | 'money';
+type Tab = 'wwc' | 'personal' | 'nights' | 'money' | 'culture';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'wwc', label: 'Programme' },
   { id: 'personal', label: 'Personal' },
   { id: 'nights', label: 'Nights' },
   { id: 'money', label: 'Money' },
+  { id: 'culture', label: 'Culture' },
 ];
 
 /**
@@ -392,6 +394,8 @@ export default function TokyoPlanner() {
             quote={fx.quote}
           />
         );
+      case 'culture':
+        return <CultureNotes />;
     }
   }
 
@@ -428,7 +432,7 @@ export default function TokyoPlanner() {
             /* Nothing to measure. The strip keeps its height and its rate
                button rather than collapsing under the header. */
             <p className="flex-1 font-mono text-xs text-ink-faint">
-              {tab === 'money' ? 'No budget set' : ''}
+              {tab === 'money' ? 'No budget set' : 'Things to know'}
             </p>
           )}
 
