@@ -18,10 +18,15 @@ import { EXCHANGE_RATE } from '@/lib/tokyo-personal';
 import { isPlausibleRate } from '@/lib/tokyo-fx';
 
 /**
- * Deliberately not `tokyo-checklist-v1`. Different lifecycle and different
+ * Deliberately not the checklist's key. Different lifecycle and different
  * reset: clearing a checklist should never clear a spending record.
+ *
+ * Namespaced per profile, so two people on one phone do not share a wallet.
+ * The unsuffixed key still exists from before profiles and is read once by
+ * `migrateLegacy` in tokyo-profiles.ts.
  */
-export const BUDGET_STORAGE_KEY = 'tokyo-budget-v1';
+export const budgetKeyFor = (profileId: string) =>
+  `tokyo-budget-v1:${profileId}`;
 
 /**
  * Bumped only for a shape change that needs a migration.
@@ -277,9 +282,12 @@ export function parseBudget(value: unknown): BudgetState | null {
  * A null here means "show the planned figures read-only", never "the budget is
  * empty".
  */
-export function readBudget(): { state: BudgetState; persisted: boolean } {
+export function readBudget(profileId: string): {
+  state: BudgetState;
+  persisted: boolean;
+} {
   try {
-    const raw = window.localStorage.getItem(BUDGET_STORAGE_KEY);
+    const raw = window.localStorage.getItem(budgetKeyFor(profileId));
     if (!raw) return { state: emptyBudget(), persisted: true };
     const parsed = parseBudget(JSON.parse(raw) as unknown);
     return { state: parsed ?? emptyBudget(), persisted: true };
@@ -288,10 +296,13 @@ export function readBudget(): { state: BudgetState; persisted: boolean } {
   }
 }
 
-/** The only function that writes the key. Returns whether it stuck. */
-export function writeBudget(state: BudgetState): boolean {
+/** The only function that writes a budget key. Returns whether it stuck. */
+export function writeBudget(profileId: string, state: BudgetState): boolean {
   try {
-    window.localStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(state));
+    window.localStorage.setItem(
+      budgetKeyFor(profileId),
+      JSON.stringify(state)
+    );
     return true;
   } catch {
     // A full quota throws here even when the read succeeded.

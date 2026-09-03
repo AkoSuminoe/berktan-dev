@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import TokyoPreloader from '@/components/tokyo/TokyoPreloader';
 import TokyoPlanner from '@/components/tokyo/TokyoPlanner';
 import SakuraField from '@/components/tokyo/SakuraField';
 import Footer from '@/components/Footer';
@@ -18,7 +17,8 @@ export default function TokyoPage() {
           negative z-index here sits under the page content but still above the
           global ambient layers, which live at z-0 on the root. */}
       <SakuraField />
-      <TokyoPreloader />
+      {/* The "Flying to Tokyo" veil now opens inside TokyoPlanner, as the
+          profile chooser, rather than as a separate screen before it. */}
       <TokyoPlanner />
       <Footer />
     </>

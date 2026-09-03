@@ -8,12 +8,14 @@ import {
   useSpring,
   useTransform,
 } from 'framer-motion';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Users } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
 import ChecklistItem from '@/components/tokyo/ChecklistItem';
 import PersonalPlan from '@/components/tokyo/PersonalPlan';
 import NightsAndFood from '@/components/tokyo/NightsAndFood';
 import RateSheet from '@/components/tokyo/RateSheet';
+import ProfileGate from '@/components/tokyo/ProfileGate';
+import { checklistKey } from '@/lib/tokyo-profiles';
 import {
   tokyoDays,
   tokyoMeta,
@@ -28,7 +30,7 @@ import { useTokyoFx } from '@/hooks/useTokyoFx';
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /* Strong ease-out. Anything entering, leaving, or answering a press uses it. */
 const easeOut: [number, number, number, number] = [0.23, 1, 0.32, 1];
-const STORAGE_KEY = 'tokyo-checklist-v1';
+/* Namespaced per profile. The builder lives in tokyo-profiles.ts, once. */
 
 /*
  * Progress spring. damping / (2 * sqrt(stiffness)) = 30 / (2 * sqrt(220))
@@ -58,9 +60,9 @@ const VALID_ITEM_IDS = new Set([
   ...nightsItemIds,
 ]);
 
-function readSavedIds(): Set<string> {
+function readSavedIds(profileId: string): Set<string> {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(checklistKey(profileId));
     if (!raw) return new Set();
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return new Set();
@@ -196,11 +198,18 @@ export default function TokyoPlanner() {
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
 
   /*
+   * Null until the gate hands one over. Everything that touches per-profile
+   * storage waits on it, so nothing reads or writes a namespaced key before
+   * there is a namespace to use.
+   */
+  const [profileId, setProfileId] = useState<string | null>(null);
+
+  /*
    * Lifted here so both tabs write to one record: a nightlife expense entered
    * on the Nights tab is the same money as a shopping expense on the Personal
    * tab, and the prefill has to survive switching between them.
    */
-  const budgetBinding = useTokyoBudget();
+  const budgetBinding = useTokyoBudget(profileId);
 
   /*
    * One rate for the page. Fetched once here rather than per tab, so the
@@ -209,27 +218,38 @@ export default function TokyoPlanner() {
    */
   const fx = useTokyoFx();
 
-  // Hydrate saved progress. Runs after mount so server and client markup match;
-  // localStorage may be unavailable (private mode) or hold stale ids.
+  /*
+   * Hydrate saved progress. Runs after mount so server and client markup match,
+   * and re-runs on a profile switch so the ticks belong to whoever is active.
+   * Clears first: leaving one profile's ticks on screen under another's name
+   * would be worse than showing an empty list for a frame.
+   */
   useEffect(() => {
-    const saved = readSavedIds();
-    if (saved.size > 0) setCheckedIds(saved);
-  }, []);
+    if (!profileId) {
+      setCheckedIds(new Set());
+      return;
+    }
+    setCheckedIds(readSavedIds(profileId));
+  }, [profileId]);
 
-  const onToggle = useCallback((id: string) => {
-    setCheckedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      try {
-        window.localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify(Array.from(next))
-        );
-      } catch {}
-      return next;
-    });
-  }, []);
+  const onToggle = useCallback(
+    (id: string) => {
+      if (!profileId) return;
+      setCheckedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        try {
+          window.localStorage.setItem(
+            checklistKey(profileId),
+            JSON.stringify(Array.from(next))
+          );
+        } catch {}
+        return next;
+      });
+    },
+    [profileId]
+  );
 
   /*
    * Counted by filtering the id list rather than iterating the Set, because the
@@ -274,11 +294,14 @@ export default function TokyoPlanner() {
       return false;
     }
   });
-  // Lands 100ms into the veil's dissolve; TokyoPreloader owns the other half.
+  // Lands 100ms into the veil's dissolve; ProfileGate owns the other half.
   const base = reduce || curtainPlayed ? 0.1 : 1.75;
 
   return (
     <>
+      {/* The entry screen. Replaces the standalone veil on this route. */}
+      <ProfileGate onPick={setProfileId} activeId={profileId} />
+
       {/* Sticky progress strip: torii red to cyber blue, Tokyo-scoped accent.
           Floating chrome, so it is the one surface here allowed a blur. */}
       <div className="material sticky top-0 z-30">
@@ -335,6 +358,22 @@ export default function TokyoPlanner() {
           {tokyoMeta.dateRange} · staying at {tokyoMeta.hotel.name}, flying{' '}
           {tokyoMeta.outbound.flight} out and {tokyoMeta.inbound.flight} home.
         </motion.p>
+
+        {/* The visible way back to the chooser, since the gate is skipped on
+            return visits and would otherwise be unreachable. */}
+        {profileId && (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: base + 0.25, ease }}
+            onClick={() => setProfileId(null)}
+            className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/[0.04] px-3.5 py-1.5 text-xs font-medium text-ink-dim shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] transition-[color,transform] duration-200 ease-out-strong hover:text-ink active:scale-[0.97] motion-reduce:transform-none"
+          >
+            <Users className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            Manage profiles
+          </motion.button>
+        )}
 
         {/* Tabs */}
         <motion.div

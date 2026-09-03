@@ -48,7 +48,7 @@ export type BudgetActions = {
 
 let nonce = 0;
 
-export function useTokyoBudget() {
+export function useTokyoBudget(profileId: string | null) {
   /*
    * `ready` gates every budget-shaped thing on the page. localStorage cannot be
    * read during SSR, so the first client render has to match the server's
@@ -65,20 +65,41 @@ export function useTokyoBudget() {
    */
   const [lastRemoved, setLastRemoved] = useState<Expense | null>(null);
 
+  /*
+   * Re-runs when the profile changes, so switching loads that profile's
+   * record rather than leaving the previous one's numbers on screen. Nothing
+   * is read or written until a profile exists.
+   */
   useEffect(() => {
-    const result = readBudget();
+    if (!profileId) {
+      setReady(false);
+      setState(emptyBudget());
+      return;
+    }
+    const result = readBudget(profileId);
     setState(result.state);
     setPersisted(result.persisted);
+    setLastRemoved(null);
     setReady(true);
-  }, []);
+  }, [profileId]);
 
   /*
    * Every mutation writes through `writeBudget` and records whether it stuck.
    * When it does not, `persisted` flips and the UI says so: the number on
    * screen is still right for this session, it just will not survive a reload.
    */
-  const actions = useMemo<BudgetActions>(
-    () => ({
+  const actions = useMemo<BudgetActions>(() => {
+    /*
+     * No profile means no store to write into, so the actions go inert rather
+     * than throwing. Nothing should reach them in that state anyway: the gate
+     * is up and the panels are unmounted.
+     */
+    const persist = (next: BudgetState): BudgetState => {
+      if (profileId) setPersisted(writeBudget(profileId, next));
+      return next;
+    };
+
+    return ({
       setTotal: (jpy, currency, rate) =>
         setState((prev) => {
           const next: BudgetState = {
@@ -87,15 +108,13 @@ export function useTokyoBudget() {
             totalCurrency: currency ?? prev.totalCurrency,
             totalRateAtEntry: rate ?? prev.totalRateAtEntry,
           };
-          setPersisted(writeBudget(next));
-          return next;
+          return persist(next);
         }),
 
       setDailyCap: (jpy) =>
         setState((prev) => {
           const next = { ...prev, dailyCapJpy: jpy };
-          setPersisted(writeBudget(next));
-          return next;
+          return persist(next);
         }),
 
       addExpense: (expense) =>
@@ -113,8 +132,7 @@ export function useTokyoBudget() {
               createdAt: Date.now(),
             }),
           };
-          setPersisted(writeBudget(next));
-          return next;
+          return persist(next);
         }),
 
       updateExpense: (id, patch) =>
@@ -125,8 +143,7 @@ export function useTokyoBudget() {
               expense.id === id ? { ...expense, ...patch } : expense
             ),
           };
-          setPersisted(writeBudget(next));
-          return next;
+          return persist(next);
         }),
 
       removeExpense: (id) =>
@@ -137,8 +154,7 @@ export function useTokyoBudget() {
             ...prev,
             expenses: prev.expenses.filter((expense) => expense.id !== id),
           };
-          setPersisted(writeBudget(next));
-          return next;
+          return persist(next);
         }),
 
       /*
@@ -156,8 +172,7 @@ export function useTokyoBudget() {
             ...prev,
             expenses: prev.expenses.filter((expense) => expense.id !== found.id),
           };
-          setPersisted(writeBudget(next));
-          return next;
+          return persist(next);
         }),
 
       undoRemove: () =>
@@ -168,8 +183,7 @@ export function useTokyoBudget() {
               ...prev,
               expenses: prev.expenses.concat(restore),
             };
-            setPersisted(writeBudget(next));
-            return next;
+            return persist(next);
           });
           return null;
         }),
@@ -177,14 +191,14 @@ export function useTokyoBudget() {
       replaceState: (incoming) => {
         setLastRemoved(null);
         setState(incoming);
-        setPersisted(writeBudget(incoming));
+        persist(incoming);
       },
 
       reset: () => {
         setLastRemoved(null);
         const next = emptyBudget();
         setState(next);
-        setPersisted(writeBudget(next));
+        persist(next);
       },
 
       prefill: (next) => {
@@ -193,9 +207,8 @@ export function useTokyoBudget() {
       },
 
       clearPending: () => setPending(null),
-    }),
-    []
-  );
+    });
+  }, [profileId]);
 
   return {
     ready,
