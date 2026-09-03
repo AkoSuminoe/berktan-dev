@@ -21,6 +21,7 @@ import {
 } from '@/lib/tokyo-itinerary';
 import { personalItemIds, personalItemCount } from '@/lib/tokyo-personal';
 import { nightsItemIds, nightsItemCount } from '@/lib/tokyo-nights';
+import { useTokyoBudget } from '@/hooks/useTokyoBudget';
 
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /* Strong ease-out. Anything entering, leaving, or answering a press uses it. */
@@ -191,6 +192,13 @@ export default function TokyoPlanner() {
   const reduce = useReducedMotion();
   const [tab, setTab] = useState<Tab>('wwc');
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+
+  /*
+   * Lifted here so both tabs write to one record: a nightlife expense entered
+   * on the Nights tab is the same money as a shopping expense on the Personal
+   * tab, and the prefill has to survive switching between them.
+   */
+  const budgetBinding = useTokyoBudget();
 
   // Hydrate saved progress. Runs after mount so server and client markup match;
   // localStorage may be unavailable (private mode) or hold stale ids.
@@ -382,9 +390,17 @@ export default function TokyoPlanner() {
                   ))}
                 </div>
               ) : tab === 'personal' ? (
-                <PersonalPlan checkedIds={checkedIds} onToggle={onToggle} />
+                <PersonalPlan
+                  checkedIds={checkedIds}
+                  onToggle={onToggle}
+                  budgetBinding={budgetBinding}
+                />
               ) : (
-                <NightsAndFood checkedIds={checkedIds} onToggle={onToggle} />
+                <NightsAndFood
+                  checkedIds={checkedIds}
+                  onToggle={onToggle}
+                  budgetBinding={budgetBinding}
+                />
               )}
             </motion.div>
           </AnimatePresence>

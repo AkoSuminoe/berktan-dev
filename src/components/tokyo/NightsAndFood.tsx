@@ -1,12 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, Banknote, CloudRain, Moon } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
 import ChecklistItem from '@/components/tokyo/ChecklistItem';
 import ViolationsPanel from '@/components/tokyo/ViolationsPanel';
+import QuickAddExpense from '@/components/tokyo/QuickAddExpense';
 import { yen, mapsSearchUrl } from '@/components/tokyo/format';
+import type { BudgetBinding } from '@/components/tokyo/PersonalPlan';
 import { tokyoDays } from '@/lib/tokyo-itinerary';
 import type { Weekday } from '@/lib/tokyo-personal';
 import {
@@ -402,11 +404,47 @@ function FoodChecklist({
 export default function NightsAndFood({
   checkedIds,
   onToggle,
+  budgetBinding,
 }: {
   checkedIds: Set<string>;
   onToggle: (id: string) => void;
+  budgetBinding: BudgetBinding;
 }) {
   const violations = useMemo(() => findNightViolations(), []);
+  const { ready, state, pending, actions } = budgetBinding;
+
+  /*
+   * A night out costs money, so ticking one prefills the quick-add. The amount
+   * is only filled where the brief states a price: a cover charge, and a drink
+   * price for the one venue that publishes it. Everywhere else the row opens
+   * blank with the category set, because inventing a bar tab would be worse
+   * than asking for it.
+   */
+  const onToggleNight = useCallback(
+    (id: string) => {
+      const wasChecked = checkedIds.has(id);
+      onToggle(id);
+      if (!ready) return;
+      if (wasChecked) return actions.removeExpenseForPlannedItem(id);
+
+      const evening = eveningPlans.find(
+        (entry) => nightIdFor(entry.dayId) === id
+      );
+      const venue = evening?.venueId ? findVenue(evening.venueId) : undefined;
+      const known =
+        venue && (venue.coverJpy || venue.typicalDrinkJpy)
+          ? (venue.coverJpy ?? 0) + (venue.typicalDrinkJpy ?? 0)
+          : null;
+
+      actions.prefill({
+        jpy: known,
+        category: 'nightlife',
+        note: venue?.name,
+        plannedItemId: id,
+      });
+    },
+    [checkedIds, onToggle, ready, actions]
+  );
 
   return (
     <div className="space-y-5">
@@ -423,6 +461,14 @@ export default function NightsAndFood({
         </p>
       </GlassCard>
 
+      {ready && (
+        <QuickAddExpense
+          pending={pending}
+          actions={actions}
+          disabled={state.totalJpy === null}
+        />
+      )}
+
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {eveningPlans.map((evening, index) => (
           <EveningCard
@@ -430,7 +476,7 @@ export default function NightsAndFood({
             evening={evening}
             index={index}
             checkedIds={checkedIds}
-            onToggle={onToggle}
+            onToggle={onToggleNight}
           />
         ))}
       </div>

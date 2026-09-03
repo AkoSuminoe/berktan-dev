@@ -1,106 +1,44 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
 import ChecklistItem from '@/components/tokyo/ChecklistItem';
 import ViolationsPanel from '@/components/tokyo/ViolationsPanel';
-import { yen, pounds, mapsUrl } from '@/components/tokyo/format';
+import BudgetTracker from '@/components/tokyo/BudgetTracker';
+import QuickAddExpense from '@/components/tokyo/QuickAddExpense';
+import { yen, mapsUrl } from '@/components/tokyo/format';
 import { tokyoDays } from '@/lib/tokyo-itinerary';
 import {
   personalDays,
   shoppingItems,
   dailyAllowance,
   preTripChecklist,
-  budget,
   findShop,
   findDinner,
   findViolations,
   CATEGORY_LABELS,
-  EXCHANGE_RATE,
   type ShoppingCategory,
 } from '@/lib/tokyo-personal';
+import type { ExpenseCategory } from '@/lib/tokyo-budget';
+import type { useTokyoBudget } from '@/hooks/useTokyoBudget';
 
 const easeOut: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
-/* ------------------------------------------------------------------ */
-/* Budget                                                              */
-/* ------------------------------------------------------------------ */
+export type BudgetBinding = ReturnType<typeof useTokyoBudget>;
 
-function BudgetPanel({ spent }: { spent: number }) {
-  const remaining = budget.afterTaxFree - spent;
-  const pct = Math.min(100, Math.round((spent / budget.afterTaxFree) * 100));
+/*
+ * The shopping categories line up with three of the expense categories by
+ * name. Mapped explicitly rather than cast, so renaming one side is a type
+ * error rather than a silently miscategorised expense.
+ */
+const EXPENSE_CATEGORY_FOR: Record<ShoppingCategory, ExpenseCategory> = {
+  pedals: 'pedals',
+  collection: 'collection',
+  gifts: 'gifts',
+};
 
-  return (
-    <GlassCard coreClassName="p-6 sm:p-7">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-ink-faint">
-            Spent so far
-          </p>
-          <p className="mt-2 font-mono text-3xl tracking-tight text-ink">
-            {yen(spent)}
-          </p>
-          <p className="mt-1 font-mono text-sm text-ink-dim">{pounds(spent)}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-xs uppercase tracking-[0.16em] text-ink-faint">
-            Left of the plan
-          </p>
-          <p className="mt-2 font-mono text-2xl tracking-tight text-ink-dim">
-            {yen(remaining)}
-          </p>
-          <p className="mt-1 font-mono text-sm text-ink-faint">
-            {pounds(remaining)}
-          </p>
-        </div>
-      </div>
-
-      <div
-        role="progressbar"
-        aria-valuenow={pct}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label="Budget spent"
-        className="mt-6 h-[3px] w-full overflow-hidden rounded-full bg-white/[0.07]"
-      >
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-[#ff3b30] to-[#57c1ff] transition-[width] duration-500 ease-out-strong motion-reduce:transition-none"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-
-      <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
-        {[
-          { label: 'Shopping', value: budget.shopping },
-          { label: 'Dinners', value: budget.dinners },
-          { label: 'Daily', value: budget.daily },
-          { label: 'Tax-free back', value: -budget.taxFreeSaving },
-        ].map((line) => (
-          <div key={line.label}>
-            <dt className="text-xs text-ink-faint">{line.label}</dt>
-            <dd
-              className={`mt-1 font-mono text-sm ${
-                line.value < 0 ? 'text-glow' : 'text-ink-dim'
-              }`}
-            >
-              {line.value < 0 ? '-' : ''}
-              {yen(Math.abs(line.value))}
-            </dd>
-          </div>
-        ))}
-      </dl>
-
-      <p className="mt-6 text-xs leading-relaxed text-ink-faint">
-        Planned total {yen(budget.afterTaxFree)} ({pounds(budget.afterTaxFree)})
-        after tax-free, from a {yen(budget.sticker)} sticker. Rate used is ¥
-        {EXCHANGE_RATE} to the pound. Tax-free takes the consumption tax out of
-        a tax-inclusive price, so it returns about 9.09%, not 10%.
-      </p>
-    </GlassCard>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /* Day card                                                            */
@@ -110,11 +48,14 @@ function PersonalDayCard({
   index,
   checkedIds,
   onToggle,
+  onToggleDinner,
   day,
 }: {
   index: number;
   checkedIds: Set<string>;
   onToggle: (id: string) => void;
+  /** Dinners record an expense; stops are just places, so they do not. */
+  onToggleDinner: (id: string) => void;
   day: (typeof personalDays)[number];
 }) {
   const programme = tokyoDays.find((entry) => entry.id === day.dayId);
@@ -221,7 +162,7 @@ function PersonalDayCard({
                   .filter(Boolean)
                   .join(' · ')}
                 checked={checkedIds.has(`dinner-${dinner.id}`)}
-                onToggle={onToggle}
+                onToggle={onToggleDinner}
                 trailing={yen(dinner.jpy)}
               />
               {dinner.coords && (
@@ -271,27 +212,57 @@ function PersonalDayCard({
 export default function PersonalPlan({
   checkedIds,
   onToggle,
+  budgetBinding,
 }: {
   checkedIds: Set<string>;
   onToggle: (id: string) => void;
+  budgetBinding: BudgetBinding;
 }) {
   const violations = useMemo(() => findViolations(), []);
+  const { ready, persisted, state, pending, actions, canUndo } = budgetBinding;
 
-  /* Ticking is spending: the number only moves for things actually bought. */
-  const spent = useMemo(() => {
-    const goods = shoppingItems
-      .filter((item) => checkedIds.has(item.id))
-      .reduce((total, item) => total + item.jpy, 0);
+  /*
+   * Ticking a planned purchase does two things: it marks the item, and it opens
+   * the quick-add with the planned price so the real one can be typed over it.
+   *
+   * The tick and the expense stay separate records. Dismissing the prefill
+   * leaves the item ticked with nothing recorded, which is honest; un-ticking
+   * removes the expense the tick created, and that is undoable, because a
+   * mis-tap should never quietly delete money.
+   */
+  const onTogglePurchase = useCallback(
+    (id: string, jpy: number | null, category: ExpenseCategory, label: string) => {
+      const wasChecked = checkedIds.has(id);
+      onToggle(id);
+      if (!ready) return;
+      if (wasChecked) actions.removeExpenseForPlannedItem(id);
+      else actions.prefill({ jpy, category, note: label, plannedItemId: id });
+    },
+    [checkedIds, onToggle, ready, actions]
+  );
 
-    const meals = personalDays
-      .map((day) => day.dinnerId)
-      .filter((id): id is string => Boolean(id))
-      .filter((id) => checkedIds.has(`dinner-${id}`))
-      .map((id) => findDinner(id)?.jpy ?? 0)
-      .reduce((total, jpy) => total + jpy, 0);
+  const onToggleShoppingItem = useCallback(
+    (id: string) => {
+      const item = shoppingItems.find((entry) => entry.id === id);
+      if (!item) return onToggle(id);
+      onTogglePurchase(
+        id,
+        item.jpy,
+        EXPENSE_CATEGORY_FOR[item.category],
+        item.label
+      );
+    },
+    [onToggle, onTogglePurchase]
+  );
 
-    return goods + meals;
-  }, [checkedIds]);
+  const onToggleDinner = useCallback(
+    (id: string) => {
+      const dinner = findDinner(id.replace(/^dinner-/, ''));
+      if (!dinner) return onToggle(id);
+      onTogglePurchase(id, dinner.jpy, 'food', `${dinner.kind}, ${dinner.name}`);
+    },
+    [onToggle, onTogglePurchase]
+  );
 
   const byCategory = useMemo(() => {
     const groups: Record<ShoppingCategory, typeof shoppingItems> = {
@@ -303,9 +274,35 @@ export default function PersonalPlan({
     return groups;
   }, []);
 
+  /* Holds the layout on the first paint, before localStorage has been read. */
+  if (!ready) {
+    return (
+      <div className="space-y-5">
+        <GlassCard coreClassName="p-6 sm:p-7">
+          <div className="h-[7.5rem] animate-pulse rounded-xl bg-white/[0.03] motion-reduce:animate-none" />
+        </GlassCard>
+        <GlassCard coreClassName="p-6 sm:p-7">
+          <div className="h-[11rem] animate-pulse rounded-xl bg-white/[0.03] motion-reduce:animate-none" />
+        </GlassCard>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
-      <BudgetPanel spent={spent} />
+      <BudgetTracker
+        state={state}
+        actions={actions}
+        persisted={persisted}
+        canUndo={canUndo}
+        checkedIds={checkedIds}
+      />
+
+      <QuickAddExpense
+        pending={pending}
+        actions={actions}
+        disabled={state.totalJpy === null}
+      />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {personalDays.map((day, index) => (
@@ -315,6 +312,7 @@ export default function PersonalPlan({
             index={index}
             checkedIds={checkedIds}
             onToggle={onToggle}
+            onToggleDinner={onToggleDinner}
           />
         ))}
       </div>
@@ -346,7 +344,7 @@ export default function PersonalPlan({
                         .filter(Boolean)
                         .join(' · ')}
                       checked={checkedIds.has(item.id)}
-                      onToggle={onToggle}
+                      onToggle={onToggleShoppingItem}
                       trailing={yen(item.jpy)}
                     />
                   );
