@@ -43,7 +43,7 @@ function NumberField({
           onChange={(event) =>
             onChange(event.target.value.replace(/[^0-9.-]/g, ''))
           }
-          className="w-full min-w-0 bg-transparent py-2.5 font-mono text-sm text-ink outline-none placeholder:text-ink-faint/50"
+          className="w-full min-w-0 bg-transparent py-2.5 font-mono text-base sm:text-sm text-ink outline-none placeholder:text-ink-faint/50"
         />
         {suffix && (
           <span aria-hidden className="font-mono text-xs text-ink-faint">

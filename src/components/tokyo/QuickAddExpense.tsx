@@ -195,7 +195,7 @@ export default function QuickAddExpense({
               placeholder="Note, optional"
               aria-label="Note"
               disabled={disabled}
-              className="min-w-[10rem] flex-1 rounded-xl bg-white/[0.03] px-3 py-2.5 text-sm text-ink outline-none shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),inset_0_0_0_1px_rgba(255,255,255,0.06)] placeholder:text-ink-faint/60 focus:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.14),inset_0_0_0_1px_rgba(130,143,255,0.45)] disabled:opacity-50"
+              className="min-w-[10rem] flex-1 rounded-xl bg-white/[0.03] px-3 py-2.5 text-base sm:text-sm text-ink outline-none shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),inset_0_0_0_1px_rgba(255,255,255,0.06)] placeholder:text-ink-faint/60 focus:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.14),inset_0_0_0_1px_rgba(130,143,255,0.45)] disabled:opacity-50"
             />
             <button
               type="submit"

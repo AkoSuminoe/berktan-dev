@@ -147,7 +147,7 @@ export default function Contact() {
   const inputClass = (field: Field) =>
     `w-full rounded-xl border ${
       errors[field] ? 'border-red-400/40' : 'border-white/10'
-    } bg-white/[0.04] px-4 py-3 text-sm text-ink placeholder-ink-faint transition-colors duration-[280ms] ease-out-strong focus:border-glow/50 focus:outline-none`;
+    } bg-white/[0.04] px-4 py-3 text-base sm:text-sm text-ink placeholder-ink-faint transition-colors duration-[280ms] ease-out-strong focus:border-glow/50 focus:outline-none`;
 
   const sending = status.kind === 'sending';
 
