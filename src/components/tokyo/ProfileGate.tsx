@@ -143,9 +143,21 @@ export default function ProfileGate({
     [state, commit, onPick]
   );
 
-  if (phase === 'gone' || activeId !== null || !state) return null;
+  /*
+   * Deliberately NOT gated on `state` being loaded.
+   *
+   * Profiles are read in an effect, so waiting for them would mean the server
+   * renders nothing, the planner paints, and the veil drops on top of it a
+   * frame later. The whole job of this surface is that the page is never seen
+   * assembling. So the veil and its wordmark render from the first paint, on
+   * the server too, and only the cards below wait for storage.
+   *
+   * That first render is identical on both sides — phase 'choosing', state
+   * null — so there is nothing for hydration to disagree about.
+   */
+  if (phase === 'gone' || activeId !== null) return null;
 
-  const profiles = state.profiles;
+  const profiles = state?.profiles ?? null;
 
   return (
     <div
@@ -187,7 +199,9 @@ export default function ProfileGate({
           </span>
         </div>
 
-        {/* Cards arrive after the letters have finished, not against them */}
+        {/* Cards arrive after the letters have finished, not against them, and
+            only once localStorage has actually been read. */}
+        {profiles !== null && state !== null && (
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
@@ -337,6 +351,7 @@ export default function ProfileGate({
             the phone.
           </p>
         </motion.div>
+        )}
       </div>
     </div>
   );
