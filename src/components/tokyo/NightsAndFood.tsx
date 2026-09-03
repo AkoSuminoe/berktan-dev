@@ -406,11 +406,13 @@ export default function NightsAndFood({
   onToggle,
   budgetBinding,
   rate,
+  atmFeeJpy,
 }: {
   checkedIds: Set<string>;
   onToggle: (id: string) => void;
   budgetBinding: BudgetBinding;
   rate: number;
+  atmFeeJpy: number;
 }) {
   const violations = useMemo(() => findNightViolations(), []);
   const { ready, state, pending, actions } = budgetBinding;
@@ -469,6 +471,7 @@ export default function NightsAndFood({
           actions={actions}
           disabled={state.totalJpy === null}
           rate={rate}
+          atmFeeJpy={atmFeeJpy}
         />
       )}
 

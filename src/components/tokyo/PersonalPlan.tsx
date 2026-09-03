@@ -21,12 +21,16 @@ import {
   CATEGORY_LABELS,
   type ShoppingCategory,
 } from '@/lib/tokyo-personal';
+import CardSettings from '@/components/tokyo/CardSettings';
 import type { ExpenseCategory } from '@/lib/tokyo-budget';
+import type { FxQuote } from '@/lib/tokyo-fx';
 import type { useTokyoBudget } from '@/hooks/useTokyoBudget';
+import type { useTokyoSettings } from '@/hooks/useTokyoSettings';
 
 const easeOut: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
 export type BudgetBinding = ReturnType<typeof useTokyoBudget>;
+export type SettingsBinding = ReturnType<typeof useTokyoSettings>;
 
 /*
  * The shopping categories line up with three of the expense categories by
@@ -214,11 +218,15 @@ export default function PersonalPlan({
   onToggle,
   budgetBinding,
   rate,
+  settingsBinding,
+  quote,
 }: {
   checkedIds: Set<string>;
   onToggle: (id: string) => void;
   budgetBinding: BudgetBinding;
   rate: number;
+  settingsBinding: SettingsBinding;
+  quote: FxQuote;
 }) {
   const violations = useMemo(() => findViolations(), []);
   const { ready, persisted, state, pending, actions, canUndo } = budgetBinding;
@@ -306,6 +314,13 @@ export default function PersonalPlan({
         actions={actions}
         disabled={state.totalJpy === null}
         rate={rate}
+        atmFeeJpy={settingsBinding.settings.atmFeeJpy}
+      />
+
+      <CardSettings
+        settings={settingsBinding.settings}
+        update={settingsBinding.update}
+        quote={quote}
       />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

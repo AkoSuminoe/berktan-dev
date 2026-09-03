@@ -49,6 +49,7 @@ export type ExpenseCategory =
   | 'food'
   | 'nightlife'
   | 'transport'
+  | 'cash'
   | 'other';
 
 export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
@@ -58,6 +59,7 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   'food',
   'nightlife',
   'transport',
+  'cash',
   'other',
 ];
 
@@ -68,8 +70,33 @@ export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   food: 'Food',
   nightlife: 'Nightlife',
   transport: 'Transport',
+  cash: 'ATM fee',
   other: 'Other',
 };
+
+/**
+ * A cash withdrawal records the FEE, never the amount withdrawn.
+ *
+ * Taking 50,000 yen out of a machine is not spending 50,000 yen; it moves money
+ * from one form into another. Record the withdrawal as an expense and then
+ * record the ramen bought with that cash, and the total is wrong by fifty
+ * thousand yen while looking perfectly reasonable.
+ *
+ * The fee is the only thing the withdrawal actually costs. The amount taken out
+ * goes in the note, where it is useful and harmless.
+ */
+export function cashWithdrawalExpense(
+  atmFeeJpy: number,
+  withdrawnJpy: number,
+  rateAtEntry: number
+) {
+  return {
+    jpy: atmFeeJpy,
+    rateAtEntry,
+    category: 'cash' as ExpenseCategory,
+    note: `ATM fee on a ¥${Math.round(withdrawnJpy).toLocaleString('en-GB')} withdrawal`,
+  };
+}
 
 export type Expense = {
   id: string;

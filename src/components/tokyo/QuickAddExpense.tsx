@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Banknote } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
 import { yen, poundsExact } from '@/components/tokyo/format';
 import {
   toJpy,
+  cashWithdrawalExpense,
   EXPENSE_CATEGORIES,
   EXPENSE_CATEGORY_LABELS,
   type Currency,
@@ -29,12 +30,14 @@ export default function QuickAddExpense({
   actions,
   disabled,
   rate,
+  atmFeeJpy,
 }: {
   pending: PendingExpense | null;
   actions: BudgetActions;
   disabled?: boolean;
   /** Today's effective rate. Frozen onto the entry at the moment Add is hit. */
   rate: number;
+  atmFeeJpy: number;
 }) {
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<Currency>('JPY');
@@ -71,6 +74,18 @@ export default function QuickAddExpense({
     setNote('');
     setPlannedItemId(undefined);
     actions.clearPending();
+  }
+
+  /*
+   * A withdrawal is not a purchase: it moves money between forms. Only the fee
+   * is a cost, so only the fee is recorded, and the amount taken out goes in
+   * the note. Recording the withdrawal itself would double-count everything
+   * later bought with that cash.
+   */
+  function recordWithdrawal() {
+    if (!valid || disabled) return;
+    actions.addExpense(cashWithdrawalExpense(atmFeeJpy, asJpy, rate));
+    clear();
   }
 
   function submit(event: React.FormEvent) {
@@ -194,14 +209,27 @@ export default function QuickAddExpense({
             </button>
           </div>
 
-          {/* The other currency, so a pound figure is never a surprise. */}
-          <p className="mt-3 h-4 font-mono text-xs text-ink-faint">
-            {valid
-              ? currency === 'GBP'
-                ? `Recorded as ${yen(asJpy)} at ¥${rate.toFixed(1)}`
-                : `About ${poundsExact(asJpy, rate)} at ¥${rate.toFixed(1)}`
-              : ''}
-          </p>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            {/* The other currency, so a pound figure is never a surprise. */}
+            <p className="h-4 font-mono text-xs text-ink-faint">
+              {valid
+                ? currency === 'GBP'
+                  ? `Recorded as ${yen(asJpy)} at ¥${rate.toFixed(1)}`
+                  : `About ${poundsExact(asJpy, rate)} at ¥${rate.toFixed(1)}`
+                : ''}
+            </p>
+
+            <button
+              type="button"
+              onClick={recordWithdrawal}
+              disabled={!valid || disabled}
+              title="Records only the ATM fee. The cash itself is not spending."
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-ink-faint shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] transition-[color,transform] duration-200 ease-out-strong hover:text-ink active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 motion-reduce:transform-none"
+            >
+              <Banknote className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+              That was an ATM withdrawal · logs {yen(atmFeeJpy)} fee only
+            </button>
+          </div>
         </form>
       </GlassCard>
     </div>

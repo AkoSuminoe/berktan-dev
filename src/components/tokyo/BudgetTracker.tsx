@@ -47,6 +47,8 @@ const SUGGESTED: Record<ExpenseCategory, number> = {
   food: 22300 + 3000,
   nightlife: 15000,
   transport: 9000,
+  /* Nothing planned: ATM fees are incidental, not budgeted. */
+  cash: 0,
   other: 7000,
 };
 

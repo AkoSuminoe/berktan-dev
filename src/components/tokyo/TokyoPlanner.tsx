@@ -26,6 +26,9 @@ import { personalItemIds, personalItemCount } from '@/lib/tokyo-personal';
 import { nightsItemIds, nightsItemCount } from '@/lib/tokyo-nights';
 import { useTokyoBudget } from '@/hooks/useTokyoBudget';
 import { useTokyoFx } from '@/hooks/useTokyoFx';
+import { useTokyoSettings } from '@/hooks/useTokyoSettings';
+import { effectiveRate } from '@/lib/tokyo-settings';
+import { localDateKey } from '@/lib/tokyo-budget';
 
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /* Strong ease-out. Anything entering, leaving, or answering a press uses it. */
@@ -219,6 +222,18 @@ export default function TokyoPlanner() {
   const fx = useTokyoFx();
 
   /*
+   * Mid-market with the card's cut taken off. This, not `fx.rate`, is what
+   * every forward-looking figure converts at: it is what he will actually be
+   * charged. The sheet still shows both, so the difference stays visible.
+   */
+  const settingsBinding = useTokyoSettings(profileId);
+  const effective = effectiveRate(
+    fx.rate,
+    settingsBinding.settings,
+    localDateKey()
+  );
+
+  /*
    * Hydrate saved progress. Runs after mount so server and client markup match,
    * and re-runs on a profile switch so the ticks belong to whoever is active.
    * Clears first: leaving one profile's ticks on screen under another's name
@@ -327,7 +342,7 @@ export default function TokyoPlanner() {
           </p>
 
           {/* Reachable from every tab: the ladder is a shop tool. */}
-          <RateSheet quote={fx.quote} state={fx.state} effective={fx.rate} />
+          <RateSheet quote={fx.quote} state={fx.state} effective={effective} />
         </div>
       </div>
 
@@ -445,14 +460,17 @@ export default function TokyoPlanner() {
                   checkedIds={checkedIds}
                   onToggle={onToggle}
                   budgetBinding={budgetBinding}
-                  rate={fx.rate}
+                  rate={effective}
+                  settingsBinding={settingsBinding}
+                  quote={fx.quote}
                 />
               ) : (
                 <NightsAndFood
                   checkedIds={checkedIds}
                   onToggle={onToggle}
                   budgetBinding={budgetBinding}
-                  rate={fx.rate}
+                  rate={effective}
+                  atmFeeJpy={settingsBinding.settings.atmFeeJpy}
                 />
               )}
             </motion.div>
