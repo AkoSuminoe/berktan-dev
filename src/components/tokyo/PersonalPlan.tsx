@@ -2,9 +2,11 @@
 
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowUpRight, AlertTriangle, Info, CircleAlert } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
 import ChecklistItem from '@/components/tokyo/ChecklistItem';
+import ViolationsPanel from '@/components/tokyo/ViolationsPanel';
+import { yen, pounds, mapsUrl } from '@/components/tokyo/format';
 import { tokyoDays } from '@/lib/tokyo-itinerary';
 import {
   personalDays,
@@ -15,22 +17,12 @@ import {
   findShop,
   findDinner,
   findViolations,
-  toGbp,
   CATEGORY_LABELS,
   EXCHANGE_RATE,
   type ShoppingCategory,
-  type Violation,
 } from '@/lib/tokyo-personal';
 
 const easeOut: [number, number, number, number] = [0.23, 1, 0.32, 1];
-
-const yen = (value: number) => `¥${Math.round(value).toLocaleString('en-GB')}`;
-const pounds = (value: number) => `£${toGbp(value).toFixed(0)}`;
-
-/* Coordinates beat a text search: a name can land on the wrong branch. */
-function mapsUrl(coords: { lat: number; lng: number }): string {
-  return `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`;
-}
 
 /* ------------------------------------------------------------------ */
 /* Budget                                                              */
@@ -106,70 +98,6 @@ function BudgetPanel({ spent }: { spent: number }) {
         {EXCHANGE_RATE} to the pound. Tax-free takes the consumption tax out of
         a tax-inclusive price, so it returns about 9.09%, not 10%.
       </p>
-    </GlassCard>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Violations                                                          */
-/* ------------------------------------------------------------------ */
-
-const SEVERITY = {
-  error: {
-    Icon: CircleAlert,
-    ring: 'shadow-[inset_0_0_0_1px_rgba(248,113,113,0.32)]',
-    tint: 'text-red-300',
-  },
-  warning: {
-    Icon: AlertTriangle,
-    ring: 'shadow-[inset_0_0_0_1px_rgba(130,143,255,0.3)]',
-    tint: 'text-glow',
-  },
-  note: {
-    Icon: Info,
-    ring: 'shadow-[inset_0_0_0_1px_rgba(255,255,255,0.07)]',
-    tint: 'text-ink-faint',
-  },
-} as const;
-
-function ViolationsPanel({ violations }: { violations: Violation[] }) {
-  if (violations.length === 0) return null;
-
-  return (
-    <GlassCard coreClassName="p-6 sm:p-7">
-      <h3 className="text-xs font-medium uppercase tracking-[0.18em] text-ink-faint">
-        Worth knowing
-      </h3>
-      <p className="mt-3 text-sm leading-relaxed text-ink-dim">
-        Checked against the shop hours, the closing days and the sequencing
-        rules. Nothing here is hidden from the plan because it is inconvenient.
-      </p>
-
-      <ul className="mt-6 space-y-3">
-        {violations.map((violation) => {
-          const { Icon, ring, tint } = SEVERITY[violation.severity];
-          return (
-            <li
-              key={violation.id}
-              className={`flex items-start gap-3.5 rounded-xl bg-white/[0.02] px-4 py-3.5 ${ring}`}
-            >
-              <Icon
-                aria-hidden
-                className={`mt-0.5 h-4 w-4 shrink-0 ${tint}`}
-                strokeWidth={1.5}
-              />
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-ink">
-                  {violation.title}
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-ink-dim">
-                  {violation.detail}
-                </p>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
     </GlassCard>
   );
 }
@@ -455,7 +383,10 @@ export default function PersonalPlan({
         </div>
       </GlassCard>
 
-      <ViolationsPanel violations={violations} />
+      <ViolationsPanel
+        violations={violations}
+        intro="Checked against the shop hours, the closing days and the sequencing rules. Nothing here is hidden from the plan because it is inconvenient."
+      />
 
       <GlassCard coreClassName="p-6 sm:p-7">
         <h3 className="text-xs font-medium uppercase tracking-[0.18em] text-ink-faint">

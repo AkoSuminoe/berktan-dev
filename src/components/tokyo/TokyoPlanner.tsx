@@ -12,6 +12,7 @@ import { ArrowUpRight } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
 import ChecklistItem from '@/components/tokyo/ChecklistItem';
 import PersonalPlan from '@/components/tokyo/PersonalPlan';
+import NightsAndFood from '@/components/tokyo/NightsAndFood';
 import {
   tokyoDays,
   tokyoMeta,
@@ -19,6 +20,7 @@ import {
   type TokyoDay,
 } from '@/lib/tokyo-itinerary';
 import { personalItemIds, personalItemCount } from '@/lib/tokyo-personal';
+import { nightsItemIds, nightsItemCount } from '@/lib/tokyo-nights';
 
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /* Strong ease-out. Anything entering, leaving, or answering a press uses it. */
@@ -39,14 +41,19 @@ const PROGRESS_SPRING = { stiffness: 220, damping: 30, restDelta: 0.2 };
  * against this so a stale entry from an older itinerary (or hand-edited
  * localStorage) can never count towards the progress bar.
  *
- * Both lists must be here. When this was WWC-only, a personal checkbox wrote
- * to localStorage and was then silently discarded on the next load, which
- * reads as data loss rather than as validation.
+ * All three lists must be here. When this was WWC-only, a personal checkbox
+ * wrote to localStorage and was then silently discarded on the next load,
+ * which reads as data loss rather than as validation. Adding a fourth source
+ * of tickable ids means adding it here too.
  */
 const WWC_ITEM_IDS = tokyoDays.flatMap((day) =>
   day.items.map((item) => item.id)
 );
-const VALID_ITEM_IDS = new Set([...WWC_ITEM_IDS, ...personalItemIds]);
+const VALID_ITEM_IDS = new Set([
+  ...WWC_ITEM_IDS,
+  ...personalItemIds,
+  ...nightsItemIds,
+]);
 
 function readSavedIds(): Set<string> {
   try {
@@ -64,7 +71,31 @@ function readSavedIds(): Set<string> {
   }
 }
 
-type Tab = 'wwc' | 'personal';
+type Tab = 'wwc' | 'personal' | 'nights';
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'wwc', label: 'Programme' },
+  { id: 'personal', label: 'Personal' },
+  { id: 'nights', label: 'Nights' },
+];
+
+/**
+ * Which list the progress strip is describing. Per-tab rather than a union:
+ * one bar over all three would move when you switch tabs without ticking
+ * anything, and would let one list push another's percentage past 100.
+ */
+const PROGRESS_SCOPE: Record<
+  Tab,
+  { ids: string[]; total: number; label: string }
+> = {
+  wwc: { ids: WWC_ITEM_IDS, total: totalItemCount, label: 'programme' },
+  personal: {
+    ids: personalItemIds,
+    total: personalItemCount,
+    label: 'personal',
+  },
+  nights: { ids: nightsItemIds, total: nightsItemCount, label: 'nights' },
+};
 
 /* ------------------------------------------------------------------ */
 /* Maps helpers                                                        */
@@ -184,21 +215,15 @@ export default function TokyoPlanner() {
   }, []);
 
   /*
-   * Progress describes the panel you are looking at, not the union of both.
-   * A single bar over both lists would mean the number moves when you switch
-   * tabs without ticking anything, and personal items would push a
-   * WWC-denominated percentage past 100.
-   *
-   * Counted by filtering the id lists rather than iterating the Set, because
-   * the project compiles to ES5 where Set iteration needs downlevelIteration.
+   * Counted by filtering the id list rather than iterating the Set, because the
+   * project compiles to ES5 where Set iteration needs downlevelIteration.
    */
-  const { completed, total } = useMemo(() => {
-    const ids = tab === 'wwc' ? WWC_ITEM_IDS : personalItemIds;
-    return {
-      completed: ids.filter((id) => checkedIds.has(id)).length,
-      total: tab === 'wwc' ? totalItemCount : personalItemCount,
-    };
-  }, [tab, checkedIds]);
+  const scope = PROGRESS_SCOPE[tab];
+  const completed = useMemo(
+    () => scope.ids.filter((id) => checkedIds.has(id)).length,
+    [scope, checkedIds]
+  );
+  const total = scope.total;
 
   const pct = Math.min(100, Math.round((completed / Math.max(total, 1)) * 100));
 
@@ -258,7 +283,7 @@ export default function TokyoPlanner() {
             />
           </div>
           <p className="shrink-0 font-mono text-xs text-ink-dim">
-            {pct}% {tab === 'wwc' ? 'programme' : 'personal'}
+            {pct}% {scope.label}
           </p>
         </div>
       </div>
@@ -300,12 +325,7 @@ export default function TokyoPlanner() {
           role="tablist"
           aria-label="Itinerary plans"
         >
-          {(
-            [
-              { id: 'wwc', label: 'WWC Programme' },
-              { id: 'personal', label: 'Personal' },
-            ] as { id: Tab; label: string }[]
-          ).map(({ id, label }) => (
+          {TABS.map(({ id, label }) => (
             <button
               key={id}
               role="tab"
@@ -333,47 +353,40 @@ export default function TokyoPlanner() {
 
         {/* Panels */}
         <div className="mt-8">
+          {/* One wrapper keyed on the tab, rather than a copy of the same six
+              motion props per panel. */}
           <AnimatePresence mode="wait">
-            {tab === 'wwc' ? (
-              <motion.div
-                key="wwc"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                /* mode="wait" plays exit then enter, so the exit has to be
-                   short or the panel sits empty. 180 + 360 = 540ms total. */
-                exit={{
-                  opacity: 0,
-                  y: -8,
-                  transition: { duration: 0.18, ease: easeOut },
-                }}
-                transition={{ duration: 0.36, ease: easeOut }}
-                className="grid grid-cols-1 gap-5 lg:grid-cols-2"
-              >
-                {tokyoDays.map((day, index) => (
-                  <DayCard
-                    key={day.id}
-                    day={day}
-                    index={index}
-                    checkedIds={checkedIds}
-                    onToggle={onToggle}
-                  />
-                ))}
-              </motion.div>
-            ) : (
-              <motion.div
-                key="personal"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{
-                  opacity: 0,
-                  y: -8,
-                  transition: { duration: 0.18, ease: easeOut },
-                }}
-                transition={{ duration: 0.36, ease: easeOut }}
-              >
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              /* mode="wait" plays exit then enter, so the exit has to be short
+                 or the panel sits empty. 180 + 360 = 540ms total. */
+              exit={{
+                opacity: 0,
+                y: -8,
+                transition: { duration: 0.18, ease: easeOut },
+              }}
+              transition={{ duration: 0.36, ease: easeOut }}
+            >
+              {tab === 'wwc' ? (
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                  {tokyoDays.map((day, index) => (
+                    <DayCard
+                      key={day.id}
+                      day={day}
+                      index={index}
+                      checkedIds={checkedIds}
+                      onToggle={onToggle}
+                    />
+                  ))}
+                </div>
+              ) : tab === 'personal' ? (
                 <PersonalPlan checkedIds={checkedIds} onToggle={onToggle} />
-              </motion.div>
-            )}
+              ) : (
+                <NightsAndFood checkedIds={checkedIds} onToggle={onToggle} />
+              )}
+            </motion.div>
           </AnimatePresence>
         </div>
       </section>
