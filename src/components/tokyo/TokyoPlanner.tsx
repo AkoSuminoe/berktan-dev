@@ -13,6 +13,7 @@ import GlassCard from '@/components/GlassCard';
 import ChecklistItem from '@/components/tokyo/ChecklistItem';
 import PersonalPlan from '@/components/tokyo/PersonalPlan';
 import NightsAndFood from '@/components/tokyo/NightsAndFood';
+import RateSheet from '@/components/tokyo/RateSheet';
 import {
   tokyoDays,
   tokyoMeta,
@@ -301,6 +302,9 @@ export default function TokyoPlanner() {
           <p className="shrink-0 font-mono text-xs text-ink-dim">
             {pct}% {scope.label}
           </p>
+
+          {/* Reachable from every tab: the ladder is a shop tool. */}
+          <RateSheet quote={fx.quote} state={fx.state} effective={fx.rate} />
         </div>
       </div>
 
