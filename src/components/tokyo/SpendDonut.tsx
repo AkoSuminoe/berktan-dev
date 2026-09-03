@@ -6,16 +6,16 @@ import { Plus } from 'lucide-react';
 import { yen, gbp } from '@/components/tokyo/format';
 import { CATEGORY_ICONS } from '@/components/tokyo/categoryIcons';
 import { CATEGORY_META } from '@/lib/tokyo-categories';
+import { arcsFor } from '@/lib/tokyo-donut';
 import { EXPENSE_CATEGORIES, type ExpenseCategory } from '@/lib/tokyo-budget';
 
 /*
  * Where the money went.
  *
  * Hand-rolled SVG rather than a charting library. Recharts is not a dependency
- * despite the brief saying so, and eight arcs plus a legend is not worth
- * 90kB of one. Segments are circles with a dash pattern rather than path arcs:
- * no large-arc-flag arithmetic, and the whole ring is one shared radius, so a
- * segment can be moved by changing one number.
+ * despite the brief saying so, and eight arcs plus a legend is not worth 90kB
+ * of one. The arc geometry lives in lib/tokyo-donut.ts so it can be checked
+ * without a renderer.
  *
  * MOTION, declared rather than slipped in. The arcs draw once on mount by
  * transitioning `stroke-dashoffset`. That is a fifth animated property beyond
@@ -32,31 +32,12 @@ const ACTUAL_W = 22;
 const PLANNED_R = 92;
 const PLANNED_W = 3;
 
-const circumference = (r: number) => 2 * Math.PI * r;
-
-/** A hair of blank between segments, so two similar colours stay two. */
-const GAP_DEGREES = 1.5;
-
 type Slice = {
   category: ExpenseCategory;
   jpy: number;
   gbpValue: number;
   fraction: number;
 };
-
-function arcs(r: number, fractions: { key: string; fraction: number; colour: string }[]) {
-  const c = circumference(r);
-  const gap = (GAP_DEGREES / 360) * c;
-  let offset = 0;
-
-  return fractions.map((entry) => {
-    const length = Math.max(entry.fraction * c - gap, 0);
-    const dash = `${length} ${c - length}`;
-    const start = -offset;
-    offset += entry.fraction * c;
-    return { key: entry.key, colour: entry.colour, dash, start, c };
-  });
-}
 
 export default function SpendDonut({
   totalsJpy,
@@ -108,7 +89,7 @@ export default function SpendDonut({
     (sum, category) => sum + CATEGORY_META[category].plannedJpy,
     0
   );
-  const plannedArcs = arcs(
+  const plannedArcs = arcsFor(
     PLANNED_R,
     EXPENSE_CATEGORIES.filter(
       (category) => CATEGORY_META[category].plannedJpy > 0
@@ -119,7 +100,7 @@ export default function SpendDonut({
     }))
   );
 
-  const actualArcs = arcs(
+  const actualArcs = arcsFor(
     ACTUAL_R,
     slices.map((slice) => ({
       key: slice.category,
@@ -152,7 +133,7 @@ export default function SpendDonut({
               strokeOpacity={0.28}
               strokeWidth={PLANNED_W}
               strokeDasharray={arc.dash}
-              strokeDashoffset={arc.start}
+              strokeDashoffset={arc.offset}
             />
           ))}
 
@@ -177,7 +158,7 @@ export default function SpendDonut({
               stroke={arc.colour}
               strokeWidth={ACTUAL_W}
               strokeDasharray={arc.dash}
-              strokeDashoffset={drawn ? arc.start : arc.start + arc.c}
+              strokeDashoffset={drawn ? arc.offset : arc.offset + arc.circumference}
               opacity={
                 activeCategory === null || activeCategory === arc.key ? 1 : 0.25
               }
