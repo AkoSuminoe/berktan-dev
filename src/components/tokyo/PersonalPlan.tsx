@@ -213,10 +213,12 @@ export default function PersonalPlan({
   checkedIds,
   onToggle,
   budgetBinding,
+  rate,
 }: {
   checkedIds: Set<string>;
   onToggle: (id: string) => void;
   budgetBinding: BudgetBinding;
+  rate: number;
 }) {
   const violations = useMemo(() => findViolations(), []);
   const { ready, persisted, state, pending, actions, canUndo } = budgetBinding;
@@ -296,12 +298,14 @@ export default function PersonalPlan({
         persisted={persisted}
         canUndo={canUndo}
         checkedIds={checkedIds}
+        rate={rate}
       />
 
       <QuickAddExpense
         pending={pending}
         actions={actions}
         disabled={state.totalJpy === null}
+        rate={rate}
       />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

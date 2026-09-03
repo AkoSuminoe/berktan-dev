@@ -3,12 +3,27 @@
  * component, not small enough to keep in step across three.
  */
 
-import { toGbp } from '@/lib/tokyo-personal';
-
 export const yen = (value: number) =>
   `¥${Math.round(value).toLocaleString('en-GB')}`;
 
-export const pounds = (value: number) => `£${toGbp(value).toFixed(0)}`;
+/*
+ * The rate is a required argument, not a default.
+ *
+ * Which rate applies is a real decision at every call site: an old expense
+ * converts at the rate it was entered at, remaining budget at today's, and a
+ * shop-window sum at today's with the card's spread on top. A default would let
+ * a component pick one up from the air, and it would sometimes pick the wrong
+ * one silently. Making it explicit means the choice is visible in the diff.
+ */
+export const pounds = (jpy: number, rate: number) =>
+  `£${(jpy / rate).toFixed(0)}`;
+
+/** Two decimals, for figures small enough that pounds alone would round to zero. */
+export const poundsExact = (jpy: number, rate: number) =>
+  `£${(jpy / rate).toFixed(2)}`;
+
+/** Already in pounds, so no conversion. Used for per-entry frozen totals. */
+export const gbp = (value: number) => `£${value.toFixed(0)}`;
 
 /**
  * Coordinates beat a text search when they exist: a name can land on the wrong

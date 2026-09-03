@@ -10,7 +10,16 @@
  * by convention rather than by a dependency, and either can be read alone.
  */
 
-/** JPY per GBP. One constant, because the rate moves and the brief asks. */
+/**
+ * JPY per GBP, as the plan was written.
+ *
+ * No longer the rate the page converts with: `useTokyoFx` fetches a live one.
+ * This stays for the two jobs it is still right for, and only those:
+ *
+ *   - the planned figures below, which were costed at this rate and are a
+ *     record of the plan rather than of the market;
+ *   - the last-resort fallback when no rate can be fetched or read from cache.
+ */
 export const EXCHANGE_RATE = 215;
 
 /**
@@ -27,8 +36,9 @@ export const TAX_RATE = 0.1;
 /** Minimum pre-tax spend per shop per day to qualify, passport required. */
 export const TAX_FREE_MINIMUM_JPY = 5000;
 
-export function toGbp(jpy: number): number {
-  return jpy / EXCHANGE_RATE;
+/** Rate is explicit: see the note on `pounds` in components/tokyo/format.ts. */
+export function toGbp(jpy: number, rate: number = EXCHANGE_RATE): number {
+  return jpy / rate;
 }
 
 /** What comes off a tax-inclusive price when the relief is applied. */

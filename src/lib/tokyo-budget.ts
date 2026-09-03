@@ -15,6 +15,7 @@
  */
 
 import { EXCHANGE_RATE } from '@/lib/tokyo-personal';
+import { isPlausibleRate } from '@/lib/tokyo-fx';
 
 /**
  * Deliberately not `tokyo-checklist-v1`. Different lifecycle and different
@@ -22,8 +23,14 @@ import { EXCHANGE_RATE } from '@/lib/tokyo-personal';
  */
 export const BUDGET_STORAGE_KEY = 'tokyo-budget-v1';
 
-/** Bumped only for a shape change that needs a migration. */
-export const BUDGET_SCHEMA_VERSION = 1;
+/**
+ * Bumped only for a shape change that needs a migration.
+ *
+ * 1 -> 2 added `rateAtEntry` to every expense, and `totalCurrency` plus
+ * `totalRateAtEntry` to the state. See `migrateV1` for why the old rows can be
+ * given 215 with a straight face.
+ */
+export const BUDGET_SCHEMA_VERSION = 2;
 
 /** A guard against a hand-edited or corrupt file, not a real limit. */
 const MAX_EXPENSES = 2000;
@@ -66,6 +73,16 @@ export type Expense = {
    * both invites the two to disagree after a rate change.
    */
   jpy: number;
+  /**
+   * The rate this was entered at, frozen forever.
+   *
+   * This is the whole reason the schema moved to 2. Money already spent was
+   * spent at a rate that no longer exists, so converting an old expense with
+   * today's rate does not correct it, it falsifies it: last week's tonkatsu
+   * would cost a different number of pounds every time the page loaded. Only
+   * the *remaining* budget is allowed to move.
+   */
+  rateAtEntry: number;
   category: ExpenseCategory;
   note?: string;
   /** The planned item whose tick prefilled this, when one did. */
@@ -79,6 +96,17 @@ export type BudgetState = {
   version: number;
   /** Null until the trip budget has been entered. */
   totalJpy: number | null;
+  /**
+   * Which currency the budget was typed in, and at what rate.
+   *
+   * Whichever one he typed is the one that holds still. "I have 1,000 pounds"
+   * is a claim about pounds, so its yen equivalent should float with the rate;
+   * "I have 150,000 yen in cash" is a claim about yen, and floating it would be
+   * wrong. Storing only the yen would silently drift the pound budget by about
+   * 20 pounds across eight days at 2%.
+   */
+  totalCurrency: Currency;
+  totalRateAtEntry: number;
   /** Null means derive it from what is left and how many days remain. */
   dailyCapJpy: number | null;
   expenses: Expense[];
@@ -88,6 +116,8 @@ export function emptyBudget(): BudgetState {
   return {
     version: BUDGET_SCHEMA_VERSION,
     totalJpy: null,
+    totalCurrency: 'GBP',
+    totalRateAtEntry: EXCHANGE_RATE,
     dailyCapJpy: null,
     expenses: [],
   };
@@ -99,12 +129,18 @@ export function emptyBudget(): BudgetState {
 
 export type Currency = 'JPY' | 'GBP';
 
-export function toJpy(amount: number, currency: Currency): number {
-  return currency === 'JPY' ? Math.round(amount) : Math.round(amount * EXCHANGE_RATE);
+/*
+ * The rate is a parameter, never a module constant, because which rate applies
+ * is a real decision at every call: the rate an old expense was entered at, or
+ * today's for anything still to be spent. Reaching for an ambient rate is how
+ * the two get mixed up.
+ */
+export function toJpy(amount: number, currency: Currency, rate: number): number {
+  return currency === 'JPY' ? Math.round(amount) : Math.round(amount * rate);
 }
 
-export function fromJpy(jpy: number, currency: Currency): number {
-  return currency === 'JPY' ? jpy : jpy / EXCHANGE_RATE;
+export function fromJpy(jpy: number, currency: Currency, rate: number): number {
+  return currency === 'JPY' ? jpy : jpy / rate;
 }
 
 /* ------------------------------------------------------------------ */
@@ -157,6 +193,11 @@ function cleanDate(value: unknown): string {
     : localDateKey();
 }
 
+/** A rate outside plausible bounds is a corrupt row, not a rate. */
+function cleanRate(value: unknown): number {
+  return isPlausibleRate(value) ? value : EXCHANGE_RATE;
+}
+
 function cleanExpense(value: unknown): Expense | null {
   if (!isRecord(value)) return null;
   const jpy = cleanAmount(value.jpy);
@@ -166,6 +207,7 @@ function cleanExpense(value: unknown): Expense | null {
   return {
     id,
     jpy,
+    rateAtEntry: cleanRate(value.rateAtEntry),
     category: cleanCategory(value.category),
     note:
       typeof value.note === 'string' && value.note
@@ -193,7 +235,16 @@ function cleanExpense(value: unknown): Expense | null {
  */
 export function parseBudget(value: unknown): BudgetState | null {
   if (!isRecord(value)) return null;
-  if (value.version !== BUDGET_SCHEMA_VERSION) return null;
+  if (value.version !== 1 && value.version !== BUDGET_SCHEMA_VERSION) {
+    return null;
+  }
+
+  /*
+   * A v1 row carries no rate, and `cleanRate` gives it 215. That is not a
+   * guess: v1 existed only while the rate was the hardcoded constant, so 215
+   * genuinely is the rate every one of those was entered at.
+   */
+  const migrating = value.version === 1;
 
   const rawExpenses = Array.isArray(value.expenses) ? value.expenses : [];
   const expenses: Expense[] = [];
@@ -205,6 +256,11 @@ export function parseBudget(value: unknown): BudgetState | null {
   return {
     version: BUDGET_SCHEMA_VERSION,
     totalJpy: cleanAmount(value.totalJpy),
+    /* v1 offered a GBP toggle and converted at 215, so the same reasoning holds. */
+    totalCurrency: value.totalCurrency === 'JPY' ? 'JPY' : 'GBP',
+    totalRateAtEntry: migrating
+      ? EXCHANGE_RATE
+      : cleanRate(value.totalRateAtEntry),
     dailyCapJpy: cleanAmount(value.dailyCapJpy),
     expenses,
   };
@@ -274,6 +330,44 @@ const sum = (values: number[]) => values.reduce((total, n) => total + n, 0);
 
 export function totalSpent(state: BudgetState): number {
   return sum(state.expenses.map((expense) => expense.jpy));
+}
+
+/**
+ * Spending in pounds, each entry at the rate it was entered at.
+ *
+ * Deliberately not `totalSpent(state) / todaysRate`. That version would restate
+ * every past purchase every time the rate moved, so the figure would drift
+ * without anything having been bought. What was paid was paid.
+ */
+export function spentGbp(state: BudgetState): number {
+  return sum(state.expenses.map((expense) => expense.jpy / expense.rateAtEntry));
+}
+
+/**
+ * The budget in pounds, at the rate it was set at.
+ *
+ * A budget typed as "1,000 pounds" is a claim about pounds and stays 1,000.
+ * One typed in yen is a claim about yen, so its pound value moves with the rate
+ * and takes today's.
+ */
+export function totalGbp(state: BudgetState, todaysRate: number): number | null {
+  if (state.totalJpy === null) return null;
+  return state.totalCurrency === 'GBP'
+    ? state.totalJpy / state.totalRateAtEntry
+    : state.totalJpy / todaysRate;
+}
+
+/**
+ * What is left, in pounds, at today's rate. This one is *supposed* to move:
+ * money not yet spent will be spent at whatever the rate turns out to be.
+ */
+export function remainingGbp(
+  state: BudgetState,
+  todaysRate: number
+): number | null {
+  const total = totalGbp(state, todaysRate);
+  if (total === null) return null;
+  return total - spentGbp(state);
 }
 
 export function spentOn(state: BudgetState, date: string): number {

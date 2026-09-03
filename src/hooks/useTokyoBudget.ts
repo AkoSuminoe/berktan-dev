@@ -8,6 +8,7 @@ import {
   newId,
   localDateKey,
   type BudgetState,
+  type Currency,
   type Expense,
   type ExpenseCategory,
 } from '@/lib/tokyo-budget';
@@ -23,10 +24,13 @@ export type PendingExpense = {
 };
 
 export type BudgetActions = {
-  setTotal: (jpy: number | null) => void;
+  /** The currency and rate come along, so the figure he typed holds still. */
+  setTotal: (jpy: number | null, currency?: Currency, rate?: number) => void;
   setDailyCap: (jpy: number | null) => void;
   addExpense: (expense: {
     jpy: number;
+    /** Today's effective rate, frozen onto the row. Never re-read later. */
+    rateAtEntry: number;
     category: ExpenseCategory;
     note?: string;
     plannedItemId?: string;
@@ -75,9 +79,14 @@ export function useTokyoBudget() {
    */
   const actions = useMemo<BudgetActions>(
     () => ({
-      setTotal: (jpy) =>
+      setTotal: (jpy, currency, rate) =>
         setState((prev) => {
-          const next = { ...prev, totalJpy: jpy };
+          const next: BudgetState = {
+            ...prev,
+            totalJpy: jpy,
+            totalCurrency: currency ?? prev.totalCurrency,
+            totalRateAtEntry: rate ?? prev.totalRateAtEntry,
+          };
           setPersisted(writeBudget(next));
           return next;
         }),
@@ -96,6 +105,7 @@ export function useTokyoBudget() {
             expenses: prev.expenses.concat({
               id: newId(),
               jpy: Math.round(expense.jpy),
+              rateAtEntry: expense.rateAtEntry,
               category: expense.category,
               note: expense.note,
               plannedItemId: expense.plannedItemId,

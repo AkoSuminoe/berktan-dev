@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Undo2, Upload, Trash2, Luggage } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
-import { yen, pounds } from '@/components/tokyo/format';
+import { yen, pounds, gbp } from '@/components/tokyo/format';
 import {
   budget,
   weightGroups,
@@ -16,6 +16,8 @@ import {
 import {
   toJpy,
   totalSpent,
+  spentGbp,
+  remainingGbp,
   spentOn,
   remaining,
   totalsByCategory,
@@ -52,7 +54,13 @@ const SUGGESTED: Record<ExpenseCategory, number> = {
 /* Setup                                                               */
 /* ------------------------------------------------------------------ */
 
-function BudgetSetup({ actions }: { actions: BudgetActions }) {
+function BudgetSetup({
+  actions,
+  rate,
+}: {
+  actions: BudgetActions;
+  rate: number;
+}) {
   const [amount, setAmount] = useState('1000');
   const [currency, setCurrency] = useState<Currency>('GBP');
   const [cap, setCap] = useState('');
@@ -75,10 +83,11 @@ function BudgetSetup({ actions }: { actions: BudgetActions }) {
         onSubmit={(event) => {
           event.preventDefault();
           if (!valid) return;
-          actions.setTotal(toJpy(parsed, currency));
+          /* The currency he typed in is recorded, so that side stays fixed. */
+          actions.setTotal(toJpy(parsed, currency, rate), currency, rate);
           const capValue = Number(cap);
           if (cap !== '' && isFinite(capValue) && capValue > 0) {
-            actions.setDailyCap(toJpy(capValue, currency));
+            actions.setDailyCap(toJpy(capValue, currency, rate));
           }
         }}
         className="mt-6 space-y-3"
@@ -221,12 +230,15 @@ export default function BudgetTracker({
   persisted,
   canUndo,
   checkedIds,
+  rate,
 }: {
   state: BudgetState;
   actions: BudgetActions;
   persisted: boolean;
   canUndo: boolean;
   checkedIds: Set<string>;
+  /** Today's effective rate. Only forward-looking figures may use it. */
+  rate: number;
 }) {
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -239,6 +251,14 @@ export default function BudgetTracker({
   const spentToday = spentOn(state, today);
   const byCategory = useMemo(() => totalsByCategory(state), [state]);
 
+  /*
+   * Two pound figures, deliberately computed differently and labelled as such.
+   * Spending is summed at each entry's own frozen rate and cannot move again;
+   * what is left converts at today's, because it has yet to be spent.
+   */
+  const spentInGbp = spentGbp(state);
+  const leftInGbp = remainingGbp(state, rate);
+
   const sorted = useMemo(
     () => state.expenses.slice().sort((a, b) => b.createdAt - a.createdAt),
     [state.expenses]
@@ -247,8 +267,8 @@ export default function BudgetTracker({
   if (state.totalJpy === null) {
     return (
       <div className="space-y-5">
-        <BudgetSetup actions={actions} />
-        <PlannedReference />
+        <BudgetSetup actions={actions} rate={rate} />
+        <PlannedReference rate={rate} />
       </div>
     );
   }
@@ -298,7 +318,10 @@ export default function BudgetTracker({
               {yen(spent)}
             </p>
             <p className="mt-1 font-mono text-sm text-ink-dim">
-              {pounds(spent)}
+              {gbp(spentInGbp)}
+            </p>
+            <p className="mt-0.5 text-[11px] text-ink-faint">
+              at the rates on the day
             </p>
           </div>
           <div className="text-right">
@@ -313,7 +336,10 @@ export default function BudgetTracker({
               {yen(Math.abs(left ?? 0))}
             </p>
             <p className="mt-1 font-mono text-sm text-ink-faint">
-              {pounds(Math.abs(left ?? 0))}
+              {gbp(Math.abs(leftInGbp ?? 0))}
+            </p>
+            <p className="mt-0.5 text-[11px] text-ink-faint">
+              at today&rsquo;s rate
             </p>
           </div>
         </div>
@@ -404,8 +430,9 @@ export default function BudgetTracker({
           })}
         </ul>
         <p className="mt-5 text-xs leading-relaxed text-ink-faint">
-          Planned figures come to {yen(budget.afterTaxFree)} after tax-free, at ¥
-          {EXCHANGE_RATE} to the pound. They are a reference, not a record.
+          Planned figures come to {yen(budget.afterTaxFree)} after tax-free,
+          costed at ¥{EXCHANGE_RATE} to the pound. They are a reference, not a
+          record.
         </p>
       </GlassCard>
 
@@ -573,7 +600,7 @@ export default function BudgetTracker({
 /* Planned figures, shown before a budget exists                       */
 /* ------------------------------------------------------------------ */
 
-function PlannedReference() {
+function PlannedReference({ rate }: { rate: number }) {
   return (
     <GlassCard coreClassName="p-6 sm:p-7">
       <h3 className="text-xs font-medium uppercase tracking-[0.18em] text-ink-faint">
@@ -600,10 +627,11 @@ function PlannedReference() {
         ))}
       </dl>
       <p className="mt-6 text-xs leading-relaxed text-ink-faint">
-        {yen(budget.afterTaxFree)} ({pounds(budget.afterTaxFree)}) after
-        tax-free, from a {yen(budget.sticker)} sticker, at ¥{EXCHANGE_RATE} to
-        the pound. Tax-free takes the consumption tax out of a tax-inclusive
-        price, so it returns about 9.09%, not 10%.
+        {yen(budget.afterTaxFree)} ({pounds(budget.afterTaxFree, rate)}) after
+        tax-free, from a {yen(budget.sticker)} sticker, at today&rsquo;s ¥
+        {rate.toFixed(1)} to the pound. The plan itself was costed at ¥
+        {EXCHANGE_RATE}. Tax-free takes the consumption tax out of a
+        tax-inclusive price, so it returns about 9.09%, not 10%.
       </p>
     </GlassCard>
   );

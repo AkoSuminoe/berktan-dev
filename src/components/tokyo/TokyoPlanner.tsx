@@ -22,6 +22,7 @@ import {
 import { personalItemIds, personalItemCount } from '@/lib/tokyo-personal';
 import { nightsItemIds, nightsItemCount } from '@/lib/tokyo-nights';
 import { useTokyoBudget } from '@/hooks/useTokyoBudget';
+import { useTokyoFx } from '@/hooks/useTokyoFx';
 
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /* Strong ease-out. Anything entering, leaving, or answering a press uses it. */
@@ -199,6 +200,13 @@ export default function TokyoPlanner() {
    * tab, and the prefill has to survive switching between them.
    */
   const budgetBinding = useTokyoBudget();
+
+  /*
+   * One rate for the page. Fetched once here rather than per tab, so the
+   * header, the converter and the budget can never disagree about what today's
+   * number is.
+   */
+  const fx = useTokyoFx();
 
   // Hydrate saved progress. Runs after mount so server and client markup match;
   // localStorage may be unavailable (private mode) or hold stale ids.
@@ -394,12 +402,14 @@ export default function TokyoPlanner() {
                   checkedIds={checkedIds}
                   onToggle={onToggle}
                   budgetBinding={budgetBinding}
+                  rate={fx.rate}
                 />
               ) : (
                 <NightsAndFood
                   checkedIds={checkedIds}
                   onToggle={onToggle}
                   budgetBinding={budgetBinding}
+                  rate={fx.rate}
                 />
               )}
             </motion.div>

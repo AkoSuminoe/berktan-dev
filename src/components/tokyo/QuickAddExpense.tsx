@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
-import { yen } from '@/components/tokyo/format';
-import { EXCHANGE_RATE } from '@/lib/tokyo-personal';
+import { yen, poundsExact } from '@/components/tokyo/format';
 import {
   toJpy,
   EXPENSE_CATEGORIES,
@@ -29,10 +28,13 @@ export default function QuickAddExpense({
   pending,
   actions,
   disabled,
+  rate,
 }: {
   pending: PendingExpense | null;
   actions: BudgetActions;
   disabled?: boolean;
+  /** Today's effective rate. Frozen onto the entry at the moment Add is hit. */
+  rate: number;
 }) {
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<Currency>('JPY');
@@ -62,7 +64,7 @@ export default function QuickAddExpense({
 
   const parsed = Number(amount);
   const valid = amount !== '' && isFinite(parsed) && parsed > 0;
-  const asJpy = valid ? toJpy(parsed, currency) : 0;
+  const asJpy = valid ? toJpy(parsed, currency, rate) : 0;
 
   function clear() {
     setAmount('');
@@ -74,7 +76,13 @@ export default function QuickAddExpense({
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!valid || disabled) return;
-    actions.addExpense({ jpy: asJpy, category, note: note || undefined, plannedItemId });
+    actions.addExpense({
+      jpy: asJpy,
+      rateAtEntry: rate,
+      category,
+      note: note || undefined,
+      plannedItemId,
+    });
     clear();
   }
 
@@ -190,8 +198,8 @@ export default function QuickAddExpense({
           <p className="mt-3 h-4 font-mono text-xs text-ink-faint">
             {valid
               ? currency === 'GBP'
-                ? `Recorded as ${yen(asJpy)}`
-                : `About £${(asJpy / EXCHANGE_RATE).toFixed(2)}`
+                ? `Recorded as ${yen(asJpy)} at ¥${rate.toFixed(1)}`
+                : `About ${poundsExact(asJpy, rate)} at ¥${rate.toFixed(1)}`
               : ''}
           </p>
         </form>
