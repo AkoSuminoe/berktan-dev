@@ -6,7 +6,7 @@ import {
   readBudget,
   writeBudget,
   newId,
-  localDateKey,
+  tokyoDateKey,
   type BudgetState,
   type Currency,
   type Expense,
@@ -113,7 +113,7 @@ export function useTokyoBudget() {
               category: expense.category,
               note: expense.note,
               plannedItemId: expense.plannedItemId,
-              date: expense.date ?? localDateKey(),
+              date: expense.date ?? tokyoDateKey(),
               createdAt: Date.now(),
             }),
           };

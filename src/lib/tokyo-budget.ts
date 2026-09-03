@@ -176,12 +176,40 @@ export function fromJpy(jpy: number, currency: Currency, rate: number): number {
 /* Dates                                                               */
 /* ------------------------------------------------------------------ */
 
-/** Local calendar date, not UTC: `toISOString` would roll over at 9am JST. */
+/**
+ * Local calendar date, not UTC: `toISOString` would roll over at 9am JST.
+ *
+ * Kept as the fallback for `tokyoDateKey`, and as the thing that is right when
+ * no timezone database is available.
+ */
 export function localDateKey(date: Date = new Date()): string {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
   const day = `${date.getDate()}`.padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * The day it is in Tokyo, which is the only day that means anything here.
+ *
+ * Checking the budget at 01:00 in a bar in Shibuya has to count as that day,
+ * and opening the same page from London must not move the boundary: the trip
+ * has eight dated days and they are Japanese ones. This stamps every expense
+ * and drives the daily cap, the days remaining and the weekday test the card
+ * spread uses, so all of them turn over together.
+ *
+ * `en-CA` is the shortest route to YYYY-MM-DD from Intl. The try/catch is not
+ * ceremony: a runtime without the full timezone data throws on a named zone,
+ * and a thrown date formatter must not take the budget down with it.
+ */
+export function tokyoDateKey(date: Date = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tokyo',
+    }).format(date);
+  } catch {
+    return localDateKey(date);
+  }
 }
 
 /** The trip, as calendar dates, matching the WWC itinerary. */
@@ -219,7 +247,7 @@ function cleanCategory(value: unknown): ExpenseCategory {
 function cleanDate(value: unknown): string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
     ? value
-    : localDateKey();
+    : tokyoDateKey();
 }
 
 /** A rate outside plausible bounds is a corrupt row, not a rate. */
@@ -415,11 +443,108 @@ export function remaining(state: BudgetState): number | null {
   return state.totalJpy - totalSpent(state);
 }
 
-export function totalsByCategory(state: BudgetState): Record<ExpenseCategory, number> {
+/**
+ * One expense in pounds, at the rate it was entered at.
+ *
+ * Both currencies without storing both. A second stored field would be a
+ * second source of truth: edit the yen, or import a file written by an older
+ * version, and the two disagree with nothing to say which is right. Yen plus a
+ * frozen rate is exact, and the pound figure cannot drift because it is not
+ * stored at all.
+ */
+export const expenseGbp = (expense: Expense) =>
+  expense.jpy / expense.rateAtEntry;
+
+export function totalsByCategoryFor(
+  expenses: Expense[]
+): Record<ExpenseCategory, number> {
   const totals = {} as Record<ExpenseCategory, number>;
   for (const category of EXPENSE_CATEGORIES) totals[category] = 0;
-  for (const expense of state.expenses) totals[expense.category] += expense.jpy;
+  for (const expense of expenses) totals[expense.category] += expense.jpy;
   return totals;
+}
+
+/**
+ * The same split in pounds, each row at its own rate.
+ *
+ * Deliberately not `totalsByCategoryFor(...) / todaysRate`. That would restate
+ * every past purchase whenever the rate moved, which is the whole reason
+ * `rateAtEntry` exists; the discipline just has to survive one level of
+ * aggregation to still be worth anything.
+ */
+export function gbpByCategoryFor(
+  expenses: Expense[]
+): Record<ExpenseCategory, number> {
+  const totals = {} as Record<ExpenseCategory, number>;
+  for (const category of EXPENSE_CATEGORIES) totals[category] = 0;
+  for (const expense of expenses) {
+    totals[expense.category] += expenseGbp(expense);
+  }
+  return totals;
+}
+
+export function totalsByCategory(
+  state: BudgetState
+): Record<ExpenseCategory, number> {
+  return totalsByCategoryFor(state.expenses);
+}
+
+/* ------------------------------------------------------------------ */
+/* Periods                                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Which slice of the trip is on screen.
+ *
+ * 'sofar' rather than 'this week': eight days have no calendar weeks in them,
+ * and labelling it that way would invent a boundary that does not exist.
+ */
+export type Period = 'today' | 'sofar' | 'trip';
+
+export const PERIOD_LABELS: Record<Period, string> = {
+  today: 'Today',
+  sofar: 'So far',
+  trip: 'Whole trip',
+};
+
+export function expensesForPeriod(
+  state: BudgetState,
+  period: Period,
+  today: string
+): Expense[] {
+  if (period === 'trip') return state.expenses;
+  if (period === 'today') {
+    return state.expenses.filter((expense) => expense.date === today);
+  }
+  return state.expenses.filter((expense) => expense.date <= today);
+}
+
+/** Trip days up to and including today. Zero before the trip starts. */
+export function daysElapsed(today: string): number {
+  return TRIP_DATES.filter((date) => date <= today).length;
+}
+
+/**
+ * What this period was allowed to cost.
+ *
+ * Today takes the derived cap, which already shrinks after an expensive day.
+ * 'So far' takes an even split of the budget across the days gone, which is
+ * the only per-period figure the plan can honestly support. Before the trip
+ * starts nothing has been consumed by the schedule, so the yardstick is the
+ * whole budget and the card says so.
+ */
+export function allowanceForPeriod(
+  state: BudgetState,
+  period: Period,
+  today: string
+): number | null {
+  if (state.totalJpy === null) return null;
+  if (period === 'trip') return state.totalJpy;
+  if (period === 'today') return deriveDailyCap(state, today);
+
+  const elapsed = daysElapsed(today);
+  if (elapsed === 0) return state.totalJpy;
+  return Math.round((state.totalJpy * elapsed) / TRIP_DATES.length);
 }
 
 /** Trip days from `today` onward, minimum one, so the cap never divides by zero. */

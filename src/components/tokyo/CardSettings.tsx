@@ -14,7 +14,7 @@ import {
   spreadFor,
   type TokyoSettings,
 } from '@/lib/tokyo-settings';
-import { localDateKey } from '@/lib/tokyo-budget';
+import { tokyoDateKey } from '@/lib/tokyo-budget';
 
 const easeOut: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
@@ -64,7 +64,7 @@ export default function CardSettings({
   update: (patch: Partial<TokyoSettings>) => void;
   quote: FxQuote;
 }) {
-  const today = localDateKey();
+  const today = tokyoDateKey();
   const effective = effectiveRate(quote.rate, settings, today);
   const spread = spreadFor(settings, today);
 

@@ -32,7 +32,7 @@ import { useTokyoBudget } from '@/hooks/useTokyoBudget';
 import { useTokyoFx } from '@/hooks/useTokyoFx';
 import { useTokyoSettings } from '@/hooks/useTokyoSettings';
 import { effectiveRate } from '@/lib/tokyo-settings';
-import { localDateKey, totalSpent } from '@/lib/tokyo-budget';
+import { tokyoDateKey, totalSpent } from '@/lib/tokyo-budget';
 
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /* Strong ease-out. Anything entering, leaving, or answering a press uses it. */
@@ -244,7 +244,7 @@ export default function TokyoPlanner() {
   const effective = effectiveRate(
     fx.rate,
     settingsBinding.settings,
-    localDateKey()
+    tokyoDateKey()
   );
 
   /*
