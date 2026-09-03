@@ -115,6 +115,27 @@
       inset 0 0 0 1px rgba(255, 255, 255, 0.05),
       0 10px 34px -14px rgba(0, 0, 0, 0.85);
   }
+
+  /*
+   * A panel that opens OUT OF a piece of chrome, rather than being chrome.
+   *
+   * Deliberately not `.material`, and this is the reason: `backdrop-filter`
+   * makes an element a backdrop root for everything inside it. A `.material`
+   * popover nested in the `.material` sticky strip therefore blurs its
+   * parent's own empty box, not the page scrolling underneath, so the blur
+   * silently does nothing and all that is left is a 62% alpha laid over
+   * moving text. On a phone, where the panel covers dense cards rather than
+   * the empty top of the page, that is unreadable.
+   *
+   * So the panel brings its own ground. #0b0b0f is exactly what `.material`
+   * resolves to under prefers-reduced-transparency, so the two agree instead
+   * of drifting, and this surface needs no variant there because it is
+   * already opaque. Elevation stays with the caller, which owns the shadow
+   * that suits its shape.
+   */
+  .sheet {
+    background: #0b0b0f;
+  }
 }
 
 /*
@@ -690,7 +711,8 @@
 /* Defined edges when the user asks for more contrast */
 @media (prefers-contrast: more) {
   .bezel,
-  .material {
+  .material,
+  .sheet {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   }
   .bezel-core {

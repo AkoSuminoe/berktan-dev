@@ -184,8 +184,14 @@ export default function RateSheet({
               transition: { duration: 0.14, ease: easeOut },
             }}
             transition={{ duration: 0.28, ease: easeOut }}
-            /* Right-anchored so it cannot push the page sideways on a phone. */
-            className="material absolute right-0 top-[calc(100%+0.6rem)] z-40 w-[min(21rem,calc(100vw-2rem))] origin-top-right rounded-2xl p-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),inset_0_0_0_1px_rgba(255,255,255,0.07),0_24px_48px_-12px_rgba(0,0,0,0.7)] outline-none"
+            /*
+             * `.sheet`, not `.material`: this hangs off the sticky strip, and
+             * a backdrop-filter inside a backdrop-filter blurs nothing. See
+             * the note on `.sheet` in globals.css.
+             *
+             * Right-anchored so it cannot push the page sideways on a phone.
+             */
+            className="sheet absolute right-0 top-[calc(100%+0.6rem)] z-40 w-[min(21rem,calc(100vw-2rem))] origin-top-right rounded-2xl p-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),inset_0_0_0_1px_rgba(255,255,255,0.07),0_24px_48px_-12px_rgba(0,0,0,0.7)] outline-none"
           >
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-xs uppercase tracking-[0.16em] text-ink-faint">
