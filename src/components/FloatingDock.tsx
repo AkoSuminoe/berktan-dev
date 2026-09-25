@@ -11,7 +11,7 @@ import {
   useReducedMotion,
   useSpring,
 } from 'framer-motion';
-import { Home, User, Briefcase, Code2, FolderGit2, Mail } from 'lucide-react';
+import { Home, User, Briefcase, Code2, FolderGit2, Mail, CalendarRange } from 'lucide-react';
 import MagneticDockItem, { type DockItem } from '@/components/MagneticDockItem';
 import { useApexOrigin } from '@/hooks/useApexOrigin';
 
@@ -24,6 +24,7 @@ const dockItems: DockItem[] = [
   { href: '/#projects', icon: FolderGit2, label: 'Work' },
   { href: '/#contact', icon: Mail, label: 'Contact' },
   { href: '/tokyo', emoji: '⛩️', label: 'Tokyo' },
+  { href: '/semester', icon: CalendarRange, label: 'Dönem' },
 ];
 
 /*

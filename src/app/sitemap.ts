@@ -9,8 +9,9 @@ type IndexableRoute = {
 };
 
 /*
- * Every indexable route. /tokyo is absent on purpose: it is noindex and
- * personal, see the note in robots.ts about why it is still crawlable.
+ * Every indexable route. /tokyo and /semester are absent on purpose: both are
+ * noindex and personal, see the note in robots.ts about why they are still
+ * crawlable.
  */
 const STATIC_ROUTES: IndexableRoute[] = [
   { path: '/', priority: 1, changeFrequency: 'weekly' },
