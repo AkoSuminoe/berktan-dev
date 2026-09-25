@@ -19,7 +19,7 @@ import type { BadDayMap, DoneMap } from '@/lib/semester-storage';
 /*
  * One day, tickable.
  *
- * "Bad day mode" is a per-date switch rather than a global one: it describes
+ * Bad day mode is a per-date switch rather than a global one: it describes
  * what happened on a Tuesday, so it has to stay on that Tuesday. Its ticks are
  * stored under a separate key prefix, because the short list and the full list
  * have different indices and sharing a key would mark the wrong rows.
@@ -116,8 +116,8 @@ export default function TodayTab({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <StepButton onClick={() => setDate(addDays(date, -1))} label="Önceki gün">
-          Önceki
+        <StepButton onClick={() => setDate(addDays(date, -1))} label="Previous day">
+          Previous
         </StepButton>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-ink">
@@ -125,16 +125,16 @@ export default function TodayTab({
           </p>
           <p className="font-mono text-xs text-ink-faint">
             {day
-              ? `Hafta ${day.weekNumber}: ${day.week.label}${isBad ? ', kötü gün sürümü' : ''}`
-              : 'Plan dışında'}
+              ? `Week ${day.weekNumber}: ${day.week.label}${isBad ? ', bad day version' : ''}`
+              : 'Outside the plan'}
           </p>
         </div>
-        <StepButton onClick={() => setDate(addDays(date, 1))} label="Sonraki gün">
-          Sonraki
+        <StepButton onClick={() => setDate(addDays(date, 1))} label="Next day">
+          Next
         </StepButton>
         {today && !isToday && (
-          <StepButton onClick={() => setDate(today)} label="Bugüne dön">
-            Bugün
+          <StepButton onClick={() => setDate(today)} label="Back to today">
+            Today
           </StepButton>
         )}
       </div>
@@ -142,8 +142,8 @@ export default function TodayTab({
       {!day ? (
         <GlassCard coreClassName="p-6">
           <p className="text-sm text-ink-dim">
-            Bu tarih planın dışında. Plan 21 Eylül 2026 ile 17 Ocak 2027 arasını
-            kapsıyor.
+            This date is outside the plan, which runs from 21 September 2026 to
+            17 January 2027.
           </p>
         </GlassCard>
       ) : (
@@ -159,7 +159,7 @@ export default function TodayTab({
                   : 'bg-white/[0.04] text-ink-faint shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] hover:text-ink-dim'
               }`}
             >
-              Kötü gün modu
+              Bad day mode
             </button>
             <p className="font-mono text-xs text-ink-faint">
               {ticked} / {tickable}
@@ -172,7 +172,7 @@ export default function TodayTab({
             aria-valuenow={Math.round(pct)}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label="Günün tamamlanan blokları"
+            aria-label="Blocks completed today"
             className="h-[3px] w-full overflow-hidden rounded-full bg-white/[0.06]"
           >
             <motion.div
@@ -208,7 +208,7 @@ export default function TodayTab({
                         type="checkbox"
                         checked={on}
                         onChange={() => toggle(i)}
-                        aria-label={`${row.title} tamamlandı`}
+                        aria-label={`${row.title} done`}
                         className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[var(--c)]"
                       />
                     )}

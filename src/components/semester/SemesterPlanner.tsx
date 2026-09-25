@@ -48,11 +48,11 @@ const easeOut: [number, number, number, number] = [0.23, 1, 0.32, 1];
 type Tab = 'week' | 'today' | 'road' | 'review' | 'dead';
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'week', label: 'Hafta' },
-  { id: 'today', label: 'Bugün' },
-  { id: 'road', label: 'Yol haritası' },
-  { id: 'review', label: 'Tekrar ve kurallar' },
-  { id: 'dead', label: 'Teslimler' },
+  { id: 'week', label: 'Week' },
+  { id: 'today', label: 'Today' },
+  { id: 'road', label: 'Roadmap' },
+  { id: 'review', label: 'Review and rules' },
+  { id: 'dead', label: 'Deadlines' },
 ];
 
 const TAB_IDS = TABS.map((t) => t.id);
@@ -122,7 +122,7 @@ export default function SemesterPlanner() {
     if (!ready) {
       return (
         <GlassCard coreClassName="p-6">
-          <p className="text-sm text-ink-faint">Plan yükleniyor.</p>
+          <p className="text-sm text-ink-faint">Loading the plan.</p>
         </GlassCard>
       );
     }
@@ -163,10 +163,7 @@ export default function SemesterPlanner() {
   }
 
   return (
-    <section
-      lang="tr"
-      className="mx-auto max-w-6xl px-4 pb-40 pt-16 sm:px-6 sm:pt-24"
-    >
+    <section className="mx-auto max-w-6xl px-4 pb-40 pt-16 sm:px-6 sm:pt-24">
       <motion.p
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -181,7 +178,7 @@ export default function SemesterPlanner() {
         transition={{ duration: 0.8, delay: 0.1, ease }}
         className="mt-3 text-5xl font-semibold tracking-tighter text-ink sm:text-6xl"
       >
-        Dönem 1.
+        Semester 1.
       </motion.h1>
       <motion.p
         initial={{ opacity: 0, y: 24 }}
@@ -189,8 +186,8 @@ export default function SemesterPlanner() {
         transition={{ duration: 0.8, delay: 0.2, ease }}
         className="mt-4 max-w-2xl text-base leading-relaxed text-ink-dim"
       >
-        21 Eylül 2026 to 15 Ocak 2027. Uyanış 07:00, yatış 22:45. Normal haftada
-        yaklaşık 48 saat çalışma, akşamların çoğu boş.
+        21 September 2026 to 15 January 2027. Up at 07:00, in bed by 22:45.
+        About 48 hours of work in a normal week, most evenings free.
       </motion.p>
 
       {/* Where the semester currently is. Client-only, so it appears after
@@ -203,8 +200,8 @@ export default function SemesterPlanner() {
       >
         {ready && currentWeek !== null
           ? inSemester
-            ? `Hafta ${currentWeek + 1} / ${WEEKS.length} · ${WEEKS[currentWeek].label}`
-            : 'Plan penceresinin dışındayız'
+            ? `Week ${currentWeek + 1} of ${WEEKS.length} · ${WEEKS[currentWeek].label}`
+            : 'Outside the plan window'
           : ' '}
       </motion.p>
 
@@ -228,7 +225,7 @@ export default function SemesterPlanner() {
       >
         <div
           role="tablist"
-          aria-label="Dönem planı görünümleri"
+          aria-label="Semester plan views"
           className="inline-flex shrink-0 items-center gap-1"
         >
           {TABS.map(({ id, label }) => (

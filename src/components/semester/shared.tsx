@@ -2,7 +2,7 @@
 
 /*
  * Pieces every /semester tab needs: the category colour channel, the legend,
- * the weekly focus cards and the section shell.
+ * the weekly focus cards and the small stepper button.
  *
  * The colour reaches CSS as a custom property rather than an inline
  * `background`, so the mixing rules stay in globals.css and a block only has
@@ -15,8 +15,8 @@ import {
   CATEGORY_COLOUR,
   SOFT_CATEGORIES,
   type CategoryId,
+  type FocusKey,
   type Week,
-  type WeekFocus,
 } from '@/data/semester-plan';
 
 export const SOFT = new Set<CategoryId>(SOFT_CATEGORIES);
@@ -47,34 +47,26 @@ export function Legend() {
 }
 
 /*
- * The week's headline per stream. `ders` and `gitar` have a standing default
- * because they happen every week whether or not that week names them, and a
- * card that silently disappears reads as "nothing this week" rather than "as
- * usual".
+ * Every focus key is also a category id, so a card and the blocks it describes
+ * share one colour with no second lookup table to fall out of step.
+ *
+ * Classes and guitar carry a standing default: they happen every week whether
+ * or not that week names them, and a card that silently disappears reads as
+ * "nothing this week" rather than "as usual".
  */
-const FOCUS_ORDER: { key: keyof WeekFocus; label: string }[] = [
-  { key: 'ders', label: 'Dersler' },
+const FOCUS_ORDER: { key: FocusKey; label: string }[] = [
+  { key: 'classes', label: 'Classes' },
   { key: 'fyp', label: 'FYP' },
   { key: 'aws', label: 'AWS' },
-  { key: 'lc', label: 'LeetCode' },
-  { key: 'is', label: 'Başvurular' },
-  { key: 'proje', label: 'JVM profiler' },
-  { key: 'gitar', label: 'Gitar' },
+  { key: 'leetcode', label: 'LeetCode' },
+  { key: 'jobs', label: 'Applications' },
+  { key: 'profiler', label: 'JVM profiler' },
+  { key: 'guitar', label: 'Guitar' },
 ];
 
-const FOCUS_DEFAULT: Partial<Record<keyof WeekFocus, string>> = {
-  ders: 'Aynı gün + ertesi gün tekrarı, Cuma sentezi.',
-  gitar: 'Günde 30 dk, Cumartesi 60 dk.',
-};
-
-const FOCUS_CATEGORY: Record<keyof WeekFocus, CategoryId> = {
-  ders: 'ders',
-  fyp: 'fyp',
-  aws: 'aws',
-  lc: 'lc',
-  is: 'is',
-  proje: 'proje',
-  gitar: 'gitar',
+const FOCUS_DEFAULT: Partial<Record<FocusKey, string>> = {
+  classes: 'Same day and next day revision, Friday synthesis.',
+  guitar: '30 min a day, 60 min on Saturday.',
 };
 
 export function FocusCards({ week }: { week: Week }) {
@@ -82,7 +74,7 @@ export function FocusCards({ week }: { week: Week }) {
     key,
     label,
     text: week.focus[key] ?? FOCUS_DEFAULT[key],
-  })).filter((c): c is { key: keyof WeekFocus; label: string; text: string } =>
+  })).filter((c): c is { key: FocusKey; label: string; text: string } =>
     Boolean(c.text)
   );
 
@@ -91,7 +83,7 @@ export function FocusCards({ week }: { week: Week }) {
       {cards.map((card) => (
         <li
           key={card.key}
-          style={hue(FOCUS_CATEGORY[card.key])}
+          style={hue(card.key)}
           className="pl-3 shadow-[inset_2px_0_0_0_var(--c)]"
         >
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--c)]">

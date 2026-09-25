@@ -47,16 +47,16 @@ export default function ReviewTab() {
       <div className="grid gap-6 lg:grid-cols-3">
         <GlassCard coreClassName="p-6 sm:p-7">
           <h3 className="text-lg font-medium tracking-tight text-ink">
-            Coursework geri sayımı
+            Coursework countdown
           </h3>
           <p className="mt-1 text-xs text-ink-faint">
-            Gerçek teslim tarihine göre. Resmî deadline her zaman belirleyici.
+            Against the real submission date. The official deadline always wins.
           </p>
           <ul className="mt-5 space-y-3">
             {RULES.courseworkCountdown.map((rule) => (
               <li key={rule.daysBefore} className="flex gap-3">
-                <span className="w-[5.5rem] shrink-0 font-mono text-xs text-glow">
-                  {rule.daysBefore} gün önce
+                <span className="w-[6rem] shrink-0 font-mono text-xs text-glow">
+                  {rule.daysBefore} days before
                 </span>
                 <span className="flex-1 text-sm leading-relaxed text-ink-dim">
                   {rule.task}
@@ -67,13 +67,13 @@ export default function ReviewTab() {
         </GlassCard>
 
         <Card
-          title="Program aksadığında"
-          when="Kaçan blokları ertesi güne taşıma"
+          title="When the plan slips"
+          when="Missed blocks do not move to the next day"
           items={RULES.whenPlanSlips}
         />
         <Card
-          title="AWS hazır oluş ölçütü"
-          when="Resmî geçme puanı ölçeklenmiş 720/1000; aşağıdaki eşik kişisel"
+          title="AWS readiness"
+          when="The official pass mark is a scaled 720/1000; the bar below is personal"
           items={RULES.awsReadiness}
         />
       </div>

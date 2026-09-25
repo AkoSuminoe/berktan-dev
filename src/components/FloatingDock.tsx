@@ -24,7 +24,7 @@ const dockItems: DockItem[] = [
   { href: '/#projects', icon: FolderGit2, label: 'Work' },
   { href: '/#contact', icon: Mail, label: 'Contact' },
   { href: '/tokyo', emoji: '⛩️', label: 'Tokyo' },
-  { href: '/semester', icon: CalendarRange, label: 'Dönem' },
+  { href: '/semester', icon: CalendarRange, label: 'Semester' },
 ];
 
 /*

@@ -24,9 +24,9 @@ import {
  *
  * Below 768px the grid is replaced by a day picker and a list rather than
  * being squeezed. A seven-column timetable at 390px gives each day 40px, which
- * is narrower than the word "Pazartesi" and unreadable at any font size, so
- * the grid is the wrong instrument on a phone rather than a small version of
- * the right one.
+ * is narrower than the word "Wednesday" and unreadable at any font size, so on
+ * a phone the grid is the wrong instrument rather than a small version of the
+ * right one.
  */
 
 const START_HOUR = 7;
@@ -80,8 +80,7 @@ export default function WeekTab({
     return (hours - START_HOUR) * HOUR_REM;
   }, [today]);
 
-  const chosen =
-    selected !== null ? days[selected.day][selected.block] : null;
+  const chosen = selected !== null ? days[selected.day][selected.block] : null;
 
   return (
     <div className="space-y-6">
@@ -89,14 +88,14 @@ export default function WeekTab({
       <div className="flex flex-wrap items-center gap-3">
         <StepButton
           onClick={() => setWeekIndex(weekIndex - 1)}
-          label="Önceki hafta"
+          label="Previous week"
           disabled={weekIndex === 0}
         >
-          Önceki
+          Previous
         </StepButton>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-ink">
-            Hafta {weekIndex + 1}: {week.label}
+            Week {weekIndex + 1}: {week.label}
           </p>
           <p className="font-mono text-xs text-ink-faint">
             {formatShort(monday)} to {formatShort(addDays(monday, 6))}
@@ -104,33 +103,33 @@ export default function WeekTab({
         </div>
         <StepButton
           onClick={() => setWeekIndex(weekIndex + 1)}
-          label="Sonraki hafta"
+          label="Next week"
           disabled={weekIndex === WEEKS.length - 1}
         >
-          Sonraki
+          Next
         </StepButton>
       </div>
 
       {week.note && <WeekNote>{week.note}</WeekNote>}
 
       {/* Fixed sessions. Collapsed by default: it never changes, and it is the
-          answer to one question ("hangi oda"), not something read weekly. */}
+          answer to one question (which room), not something read weekly. */}
       <GlassCard coreClassName="p-5 sm:p-6">
         <details className="group">
           <summary className="cursor-pointer list-none text-sm font-medium text-ink-dim transition-colors duration-200 ease-out-strong hover:text-ink">
-            Sabit dersler ve odalar
+            Fixed sessions and rooms
           </summary>
           <div className="no-scrollbar mt-4 overflow-x-auto">
             <table className="w-full min-w-[46rem] text-left text-sm">
               <thead>
                 <tr className="text-xs font-medium text-ink-faint">
-                  <th className="py-2 pr-4 font-medium">Gün</th>
-                  <th className="py-2 pr-4 font-medium">Saat</th>
-                  <th className="py-2 pr-4 font-medium">Ders</th>
-                  <th className="py-2 pr-4 font-medium">Tür</th>
-                  <th className="py-2 pr-4 font-medium">Oda</th>
-                  <th className="py-2 pr-4 font-medium">Öğretim görevlisi</th>
-                  <th className="py-2 font-medium">Haftalar</th>
+                  <th className="py-2 pr-4 font-medium">Day</th>
+                  <th className="py-2 pr-4 font-medium">Time</th>
+                  <th className="py-2 pr-4 font-medium">Module</th>
+                  <th className="py-2 pr-4 font-medium">Type</th>
+                  <th className="py-2 pr-4 font-medium">Room</th>
+                  <th className="py-2 pr-4 font-medium">Staff</th>
+                  <th className="py-2 font-medium">Weeks</th>
                 </tr>
               </thead>
               <tbody>
@@ -173,7 +172,7 @@ export default function WeekTab({
       {/* ------------------------------------------------ phone: day + list */}
       <div className="md:hidden">
         <nav
-          aria-label="Gün seç"
+          aria-label="Pick a day"
           className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4"
         >
           {DAY_SHORT.map((short, i) => {
@@ -322,9 +321,7 @@ export default function WeekTab({
                           {box.height >= 1 && (
                             <span
                               className={`block truncate text-[11px] leading-tight ${
-                                soft
-                                  ? 'text-ink-faint'
-                                  : 'font-medium text-ink'
+                                soft ? 'text-ink-faint' : 'font-medium text-ink'
                               }`}
                             >
                               {block.title}
@@ -381,7 +378,7 @@ export default function WeekTab({
             </div>
           ) : (
             <p className="text-sm text-ink-faint">
-              Ayrıntısını görmek için bir bloğa tıkla.
+              Select a block to see its detail.
             </p>
           )}
         </GlassCard>

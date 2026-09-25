@@ -16,7 +16,13 @@ import { CATEGORIES, DEFAULT_DEADLINES } from '@/data/semester-plan';
 
 export const DONE_KEY = 'bs-semester-done-v1';
 export const BAD_DAY_KEY = 'bs-semester-bad-v1';
-export const DEADLINES_KEY = 'bs-semester-deadlines-v1';
+/*
+ * v2: the category ids were renamed from Turkish to English when the page
+ * moved to English copy. A v1 row would fail the category check and be dropped
+ * silently, which reads as the list eating an entry, so the key is bumped and
+ * v1 is left on disk.
+ */
+export const DEADLINES_KEY = 'bs-semester-deadlines-v2';
 export const TAB_KEY = 'bs-semester-tab-v1';
 
 /** A stored deadline keeps an id so the list can be edited row by row. */

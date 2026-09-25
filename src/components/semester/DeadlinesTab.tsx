@@ -4,19 +4,15 @@ import { useCallback, useMemo, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
 import { SOFT, hue } from '@/components/semester/shared';
-import {
-  CATEGORIES,
-  daysUntil,
-  type CategoryId,
-} from '@/data/semester-plan';
+import { CATEGORIES, daysUntil, type CategoryId } from '@/data/semester-plan';
 import type { StoredDeadline } from '@/lib/semester-storage';
 
 /*
- * Teslimler: the only list on this page the user writes into.
+ * Deadlines: the only list on this page the user writes into.
  *
- * Undated rows sort to the top on purpose. A coursework with no date is not a
- * far-away task, it is a missing piece of information, and burying it under
- * everything with a date is how it stays missing.
+ * Rows with no date sort to the top on purpose. A coursework with no date is
+ * not a far-away task, it is a missing piece of information, and burying it
+ * under everything that has a date is how it stays missing.
  */
 
 const SELECTABLE = (Object.keys(CATEGORIES) as CategoryId[]).filter(
@@ -26,12 +22,12 @@ const SELECTABLE = (Object.keys(CATEGORIES) as CategoryId[]).filter(
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 function countdown(iso: string | null, today: Date | null): string {
-  if (!iso) return 'Tarih yok';
+  if (!iso) return 'No date';
   if (!today) return '';
   const n = daysUntil(iso, today);
-  if (n === 0) return 'Bugün';
-  if (n < 0) return `${-n} gün önce`;
-  return `${n} gün`;
+  if (n === 0) return 'Today';
+  if (n < 0) return `${-n} days ago`;
+  return `in ${n} days`;
 }
 
 export default function DeadlinesTab({
@@ -45,7 +41,7 @@ export default function DeadlinesTab({
 }) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
-  const [cat, setCat] = useState<CategoryId>('tekrar');
+  const [cat, setCat] = useState<CategoryId>('revision');
 
   const sorted = useMemo(
     () =>
@@ -106,21 +102,21 @@ export default function DeadlinesTab({
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             maxLength={160}
-            placeholder="Ör. Formal Methods coursework 1"
-            aria-label="Teslim başlığı"
+            placeholder="e.g. Formal Methods coursework 1"
+            aria-label="Deadline title"
             className="min-w-[14rem] flex-1 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-base text-ink placeholder:text-ink-faint focus:border-glow/50 focus:outline-none sm:text-sm"
           />
           <input
             type="date"
             value={date}
             onChange={(event) => setDate(event.target.value)}
-            aria-label="Teslim tarihi"
+            aria-label="Deadline date"
             className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-base text-ink focus:border-glow/50 focus:outline-none sm:text-sm"
           />
           <select
             value={cat}
             onChange={(event) => setCat(event.target.value as CategoryId)}
-            aria-label="Kategori"
+            aria-label="Category"
             className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-base text-ink focus:border-glow/50 focus:outline-none sm:text-sm"
           >
             {SELECTABLE.map((option) => (
@@ -133,7 +129,7 @@ export default function DeadlinesTab({
             type="submit"
             className="rounded-full bg-ink px-5 py-2 text-sm font-medium text-abyss transition-transform duration-[280ms] ease-out-strong hover:scale-[1.025] active:scale-[0.975] active:duration-[120ms] motion-reduce:transform-none"
           >
-            Teslim ekle
+            Add deadline
           </button>
         </form>
       </GlassCard>
@@ -141,7 +137,7 @@ export default function DeadlinesTab({
       <GlassCard coreClassName="p-5 sm:p-6">
         {sorted.length === 0 ? (
           <p className="text-sm text-ink-faint">
-            Henüz teslim yok. Yukarıdan ekle.
+            No deadlines yet. Add one above.
           </p>
         ) : (
           <ul>
@@ -167,7 +163,7 @@ export default function DeadlinesTab({
                     type="date"
                     value={row.date ?? ''}
                     onChange={(event) => setDateFor(row.id, event.target.value)}
-                    aria-label={`${row.title} tarihi`}
+                    aria-label={`${row.title} date`}
                     className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1 text-base text-ink-dim focus:border-glow/50 focus:outline-none sm:text-xs"
                   />
                   <span
@@ -180,7 +176,7 @@ export default function DeadlinesTab({
                   <button
                     type="button"
                     onClick={() => remove(row.id)}
-                    aria-label={`${row.title} sil`}
+                    aria-label={`Delete ${row.title}`}
                     className="rounded-full p-2 text-ink-faint transition-[color,transform] duration-200 ease-out-strong hover:text-ink active:scale-[0.94] active:duration-100 motion-reduce:transform-none"
                   >
                     <Trash2 className="h-4 w-4" strokeWidth={1.5} />
@@ -191,9 +187,9 @@ export default function DeadlinesTab({
           </ul>
         )}
         <p className="mt-5 text-xs leading-relaxed text-ink-faint">
-          Tarihi olmayanlar en üstte durur. Blackboard ve CMISGo&apos;daki
-          coursework, sınav ve FYP tarihlerini buraya gir. Bu liste yalnızca bu
-          tarayıcıda saklanır, hiçbir yere gönderilmez.
+          Rows with no date stay at the top. Put the coursework, exam and FYP
+          dates from Blackboard and CMISGo in here. This list is kept in this
+          browser only and is never sent anywhere.
         </p>
       </GlassCard>
     </div>

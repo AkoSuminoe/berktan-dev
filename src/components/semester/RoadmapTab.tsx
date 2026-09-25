@@ -6,7 +6,7 @@ import {
   addDays,
   formatShort,
   parseISO,
-  type Week,
+  type FocusKey,
 } from '@/data/semester-plan';
 
 /*
@@ -18,12 +18,12 @@ import {
  * November) and a stack of per-week cards destroys exactly that.
  */
 
-const COLUMNS: { key: keyof Week['focus']; label: string }[] = [
+const COLUMNS: { key: FocusKey; label: string }[] = [
   { key: 'fyp', label: 'FYP' },
   { key: 'aws', label: 'AWS SAA-C03' },
-  { key: 'lc', label: 'LeetCode' },
-  { key: 'is', label: 'Başvurular' },
-  { key: 'ders', label: 'Dersler' },
+  { key: 'leetcode', label: 'LeetCode' },
+  { key: 'jobs', label: 'Applications' },
+  { key: 'classes', label: 'Classes' },
 ];
 
 export default function RoadmapTab({ currentWeek }: { currentWeek: number | null }) {
@@ -33,13 +33,13 @@ export default function RoadmapTab({ currentWeek }: { currentWeek: number | null
         <table className="w-full min-w-[68rem] text-left align-top text-sm">
           <thead>
             <tr className="text-xs font-medium text-ink-faint">
-              <th className="px-3 py-2 font-medium">Hafta</th>
+              <th className="px-3 py-2 font-medium">Week</th>
               {COLUMNS.map((column) => (
                 <th key={column.key} className="px-3 py-2 font-medium">
                   {column.label}
                 </th>
               ))}
-              <th className="px-3 py-2 font-medium">Profiler / gitar</th>
+              <th className="px-3 py-2 font-medium">Profiler and guitar</th>
             </tr>
           </thead>
           <tbody>
@@ -64,7 +64,7 @@ export default function RoadmapTab({ currentWeek }: { currentWeek: number | null
                     </span>
                     {week.fypSession && (
                       <span className="mt-1 block text-[11px] text-ink-faint">
-                        Cuma FYP oturumu
+                        Friday FYP session
                       </span>
                     )}
                   </td>
@@ -74,7 +74,7 @@ export default function RoadmapTab({ currentWeek }: { currentWeek: number | null
                       className="px-3 py-4 text-xs leading-relaxed text-ink-dim"
                     >
                       {week.focus[column.key] ?? ''}
-                      {column.key === 'ders' && week.note && (
+                      {column.key === 'classes' && week.note && (
                         <span className="mt-2 block text-ink-faint">
                           {week.note}
                         </span>
@@ -82,15 +82,17 @@ export default function RoadmapTab({ currentWeek }: { currentWeek: number | null
                     </td>
                   ))}
                   <td className="px-3 py-4 text-xs leading-relaxed text-ink-dim">
-                    {week.focus.proje || week.focus.gitar ? (
+                    {week.focus.profiler || week.focus.guitar ? (
                       <>
-                        {week.focus.proje && <span className="block">{week.focus.proje}</span>}
-                        {week.focus.gitar && (
-                          <span className="mt-1 block">{week.focus.gitar}</span>
+                        {week.focus.profiler && (
+                          <span className="block">{week.focus.profiler}</span>
+                        )}
+                        {week.focus.guitar && (
+                          <span className="mt-1 block">{week.focus.guitar}</span>
                         )}
                       </>
                     ) : (
-                      <span className="text-ink-faint">Rutin</span>
+                      <span className="text-ink-faint">Routine</span>
                     )}
                   </td>
                 </tr>
