@@ -16,6 +16,8 @@ type IndexableRoute = {
 const STATIC_ROUTES: IndexableRoute[] = [
   { path: '/', priority: 1, changeFrequency: 'weekly' },
   { path: '/work', priority: 0.9, changeFrequency: 'monthly' },
+  /* Indexed on purpose: "Berktan Solmaz CV" is a query a recruiter types. */
+  { path: '/cv', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/privacy', priority: 0.2, changeFrequency: 'yearly' },
 ];
 

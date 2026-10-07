@@ -127,18 +127,17 @@ export default function Hero() {
                 <ArrowUpRight className="h-4 w-4" strokeWidth={1.5} />
               </span>
             </a>
-            {/* Renders only once the PDF is actually in public/. A dead CV
-                link shipped here once already. */}
+            {/* Points at the /cv route, not the file, so this stays a
+                same-tab navigation: no target="_blank", which on an internal
+                page leaves an orphan tab behind for no reason. */}
             {siteConfig.cvUrl && (
-              <a
+              <Link
                 href={siteConfig.cvUrl}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="group inline-flex items-center gap-2 text-sm font-medium text-ink-dim transition-colors duration-[280ms] ease-out-strong hover:text-ink"
               >
                 <FileText className="h-4 w-4" strokeWidth={1.5} />
                 View CV
-              </a>
+              </Link>
             )}
           </motion.div>
         </div>

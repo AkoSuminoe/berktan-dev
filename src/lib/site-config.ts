@@ -25,14 +25,18 @@ export const siteConfig = {
    */
   responseTime: null as string | null,
   /**
-   * Path to the CV inside public/. Null until the PDF is actually there:
-   * AI_MEMORY.md records that a dead /cv.pdf pointer already shipped once and
-   * was removed. The Hero CTA renders only when this is set, so re-adding the
-   * link is a one-line change once the file lands, and it can never 404 in
-   * the meantime. Berktan also needs to re-export the CV first, since the
-   * current DOCX still shows the old 2024 - 2028 period.
+   * Where "View CV" goes. The /cv route, not the file: a QR code on a business
+   * card points at the same place, and a link that starts a download tells a
+   * stranger nothing about him. The PDF is a press away once he is there.
+   *
+   * It stayed null for a while because a dead /cv.pdf pointer shipped once and
+   * was removed, and because the DOCX still showed the old four-year
+   * 2024 - 2028 period. Both are resolved: the CV was re-exported on
+   * 2026-09-01 showing 2024 - 2027, and the PDF is committed under public/cv/.
+   * The download path itself lives in `src/lib/cv.ts`, beside the content it
+   * belongs to.
    */
-  cvUrl: null as string | null,
+  cvUrl: '/cv' as string | null,
   githubUsername: 'AkoSuminoe',
   available: true,
   /*

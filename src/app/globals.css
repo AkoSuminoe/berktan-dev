@@ -778,3 +778,67 @@
 .plan-now {
   box-shadow: 0 0 0 1px rgba(130, 143, 255, 0.35);
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * CV print (/cv only)
+ * ---------------------------------------------------------------------------
+ * The PDF is the printable artifact and it sits one press away on the page, so
+ * this is not a second CV layout. It exists so an accidental Ctrl+P does not
+ * come out as a black rectangle with the dock printed over it.
+ *
+ * `body > :not(main)` is the whole chrome: the ambient layers, the spotlight,
+ * the dock, the contact FAB and the Spotify pill are all direct children of
+ * body, because Providers renders a MotionConfig and no DOM node of its own.
+ * The grain is a pseudo element on body, so it needs its own rule.
+ */
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color-scheme: light;
+  }
+
+  body > :not(main) {
+    display: none !important;
+  }
+
+  body.grain::after {
+    display: none !important;
+  }
+
+  /* Breadcrumbs, the download row, the footer: navigation has no meaning on
+     paper, and the page it would point at is the one in your hand. */
+  .cv-actions,
+  main footer {
+    display: none !important;
+  }
+
+  /* The sheet stops being a surface and becomes the paper itself. */
+  .cv-sheet .bezel,
+  .cv-sheet .bezel-core {
+    background: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .cv-sheet,
+  .cv-sheet * {
+    color: #16161a !important;
+  }
+
+  /* Meta lines stay quieter than the prose, the same hierarchy as on screen. */
+  .cv-sheet .font-mono {
+    color: #5a5a64 !important;
+  }
+
+  .cv-sheet section {
+    border-color: rgba(0, 0, 0, 0.12) !important;
+    break-inside: avoid;
+  }
+
+  .cv-sheet a {
+    text-decoration: none;
+  }
+}
